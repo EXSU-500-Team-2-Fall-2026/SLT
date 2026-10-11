@@ -1,0 +1,146 @@
+{
+  "model": "classical_ml",
+  "features": [
+    "area_fraction",
+    "eccentricity",
+    "solidity",
+    "extent",
+    "compactness",
+    "asymmetry",
+    "mean_r",
+    "mean_g",
+    "mean_b",
+    "std_r",
+    "std_g",
+    "std_b",
+    "mean_h",
+    "mean_s",
+    "mean_v",
+    "lesion_skin_contrast",
+    "glcm_contrast",
+    "glcm_homogeneity",
+    "glcm_energy",
+    "glcm_correlation"
+  ],
+  "n_train": 8488,
+  "n_val": 1527,
+  "discrimination": {
+    "auroc": 0.839804400977995,
+    "auroc_ci95": [
+      0.818103282533522,
+      0.8615128988807802
+    ],
+    "auprc": 0.5545927630570641,
+    "auprc_ci95": [
+      0.5015618387520981,
+      0.6159122614444648
+    ],
+    "sensitivity": 0.7466666666666667,
+    "sensitivity_ci95": [
+      0.6970632965985314,
+      0.7993789808917198
+    ],
+    "specificity": 0.7302363488182559,
+    "specificity_ci95": [
+      0.7075478923131185,
+      0.7559977403771233
+    ],
+    "threshold": 0.5
+  },
+  "calibration": {
+    "brier_score": 0.15984839565209596,
+    "brier_score_ci95": [
+      0.1497492876333443,
+      0.16990149715288586
+    ],
+    "ece": 0.16276161302348172,
+    "calibration_slope": 0.9202444634229761,
+    "calibration_intercept": -1.2180321916937917
+  },
+  "bootstrap": {
+    "n_boot": 1000,
+    "ci_level": 0.95
+  },
+  "feature_importances": [
+    [
+      "mean_s",
+      0.09015104591143704
+    ],
+    [
+      "solidity",
+      0.03700298831839165
+    ],
+    [
+      "std_b",
+      0.0334001629991849
+    ],
+    [
+      "mean_r",
+      0.022135560988861637
+    ],
+    [
+      "lesion_skin_contrast",
+      0.01906601466992658
+    ],
+    [
+      "mean_h",
+      0.015825862537353918
+    ],
+    [
+      "mean_v",
+      0.013710948111926025
+    ],
+    [
+      "mean_g",
+      0.010594132029339776
+    ],
+    [
+      "glcm_contrast",
+      0.010513447432762757
+    ],
+    [
+      "std_r",
+      0.009024721543058844
+    ],
+    [
+      "mean_b",
+      0.00824123879380596
+    ],
+    [
+      "glcm_correlation",
+      0.0075642488454223614
+    ],
+    [
+      "area_fraction",
+      0.006431132844335707
+    ],
+    [
+      "asymmetry",
+      0.005993751697908112
+    ],
+    [
+      "glcm_energy",
+      0.005539527302363434
+    ],
+    [
+      "std_g",
+      0.005072534637326709
+    ],
+    [
+      "glcm_homogeneity",
+      0.004509915783754337
+    ],
+    [
+      "compactness",
+      0.003571312143439154
+    ],
+    [
+      "eccentricity",
+      0.0008595490355880586
+    ],
+    [
+      "extent",
+      0.0002844335778320106
+    ]
+  ]
+}

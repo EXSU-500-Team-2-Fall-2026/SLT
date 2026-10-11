@@ -1,0 +1,55 @@
+# Raw dataset downloads (regenerate via src/data/download.py; never commit)
+data/raw/
+
+# Common large/binary dataset formats, wherever they appear
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.7z
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.bmp
+*.npy
+*.npz
+
+# Model weights / checkpoints (host externally, link in README)
+models/*
+!models/.gitkeep
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.safetensors
+*.onnx
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+*credentials*
+secrets/
+
+# CSV and PNG files (split manifests, results tables, figures) are
+# intentionally NOT ignored above and may be committed.
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Jupyter / editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Logs / outputs
+*.log
+wandb/
