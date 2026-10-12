@@ -15,10 +15,7 @@ commit history is part of the assessment).
 | Ariel Subekti | Writing lead | *Pending — manuscript not yet started* |
 
 Every team member is expected to also contribute to the manuscript and to
-review the full codebase before submission, per the course specification
-("every member is expected to contribute to the code and to the
-manuscript; the roles establish who is answerable for each area, not who
-does all of it").
+review the full codebase before submission.
 
 ## Use of Generative AI
 
