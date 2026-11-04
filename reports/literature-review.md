@@ -38,7 +38,7 @@ A team member should update a row only after actually reading the paper. Suggest
 
 | ID | Reader | Reading status | Dataset, population, and task | Split unit and leakage safeguards | Models and comparator | Main quantitative result with uncertainty and location | Main limitation | Use in our argument / inclusion decision |
 |---|---|---|---|---|---|---|---|---|
-| P01 | Sophia | Reviewed | Not extracted yet | Not extracted yet | Not extracted yet | Not extracted yet | Not appraised yet | Pending |
+| P01 | Sophia | Reviewed | HAM10000, publicly availble ISIC archive; images of histopathology, follow-up examination, in vivo confocal microscopy; metadata(sex, age, lesion location) | More than one image can correspond to the same lesion, which has important implications for avoiding leakage between training and test sets.  | No models | Not extracted yet | Dataset's severe imbalanced since the largest category contains 6,705 images (about 67%), whereas the smallest contains 115 images. Inter-class similarity: Lesions from different diagnostic classes can share overlapping visual characteristics. Intra-class variation: Images representing the same diagnostic class may differ considerably in appearance. | Original paper describing the dataset; need to include |
 | P02 | Unassigned | Not yet reviewed | Not extracted yet | Not extracted yet | Not extracted yet | Not extracted yet | Not appraised yet | Pending |
 | P03 | Unassigned | Not yet reviewed | Not extracted yet | Not extracted yet | Not extracted yet | Not extracted yet | Not appraised yet | Pending |
 | P04 | Unassigned | Not yet reviewed | Not extracted yet | Not extracted yet | Not extracted yet | Not extracted yet | Not appraised yet | Pending |
