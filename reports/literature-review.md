@@ -38,7 +38,7 @@ A team member should update a row only after actually reading the paper. Suggest
 
 | ID | Reader | Reading status | Dataset, population, and task | Split unit and leakage safeguards | Models and comparator | Main quantitative result with uncertainty and location | Main limitation | Use in our argument / inclusion decision |
 |---|---|---|---|---|---|---|---|---|
-| P01 | Unassigned | Not yet reviewed | Not extracted yet | Not extracted yet | Not extracted yet | Not extracted yet | Not appraised yet | Pending |
+| P01 | Sophia | Reviewed | Not extracted yet | Not extracted yet | Not extracted yet | Not extracted yet | Not appraised yet | Pending |
 | P02 | Unassigned | Not yet reviewed | Not extracted yet | Not extracted yet | Not extracted yet | Not extracted yet | Not appraised yet | Pending |
 | P03 | Unassigned | Not yet reviewed | Not extracted yet | Not extracted yet | Not extracted yet | Not extracted yet | Not appraised yet | Pending |
 | P04 | Unassigned | Not yet reviewed | Not extracted yet | Not extracted yet | Not extracted yet | Not extracted yet | Not appraised yet | Pending |
