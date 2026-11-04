@@ -80,7 +80,7 @@ The final review should connect these themes into the reason for our experiment,
 
 ## Notes on Giuliana's additions (P16–P18)
 
-- P16 uses the published title rather than the informal title in the supplied notes. It is secondary literature; maintain a predominantly primary-research bibliography. Claims attributed to Behara, Kamulegeya, or Yuan are review-reported until the original studies are checked. Do not present reported ranges as pooled estimates or transport them to our cohort.
+- P16 is secondary literature; maintain a predominantly primary-research bibliography. Claims attributed to Behara, Kamulegeya, or Yuan are review-reported until the original studies are checked. Do not present reported ranges as pooled estimates or transport them to our cohort.
 - P17's detailed dataset and aggregation notes were supplied by the team; the publisher record/abstract was checked, but full-text verification of those details remains pending. The supplied Gemini explanation is an AI-generated interpretation, not a quotation or independent source, and has not been entered as evidence. In particular, uncertainty can affect both binary and multiclass diagnosis; avoid suggesting that all AI models require binary labels.
 - P18 was published on 17 June 2024. The 26 March 2026 correction changes a typo from “sex” to “six” evaluation metrics; it does not announce a revision of performance results.
 
