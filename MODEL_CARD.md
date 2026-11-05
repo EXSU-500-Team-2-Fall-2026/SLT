@@ -15,8 +15,9 @@ once post-hoc recalibration is implemented.
   pretrained backbone: this environment's network policy blocks both
   `download.pytorch.org` and `huggingface.co`.
 - **Version:** trained from `data/splits/{train,val}.csv` and
-  `data/raw/HAM10000_images/`, commit `<pending>` on branch
-  `modelling/mourad`.
+  `data/raw/HAM10000_images/`; results committed in `a8635b8`
+  ("Real model 3/3 results: CNN trained from scratch") on branch
+  `modelling/mourad`, merged into `main` on 2026-10-10.
 
 ## Model selection is a trade-off, not a clear winner
 
@@ -64,7 +65,8 @@ section of this limitations list for model 2's feature pipeline).
 
 HAM10000 validation split: 1,527 images of 1,121 lesions
 (`data/splits/val.csv`), disjoint from training at the lesion level. The
-official ISIC 2018 Task 3 test set (1,512 images) is held out and has not
+official ISIC 2018 Task 3 test set (1,511 available images of the 1,512
+listed; `ISIC_0035068` was withdrawn) is held out and has not
 been used for any decision about this model yet.
 
 ## Metrics (validation set, 95% bootstrap CI, threshold 0.5)
@@ -85,8 +87,9 @@ in `reports/classical_ml/metrics.json` for comparison.
 
 - **Calibration is poor out of the box, worse than either simpler
   model.** The reliability diagram (`reports/cnn/reliability_diagram.png`)
-  shows systematic overconfidence: predicted probabilities run well above
-  the observed malignancy rate. This traces to the `pos_weight` term in
+  shows that the model systematically overestimates risk: predicted
+  probabilities run well above the observed malignancy rate (calibration
+  intercept −1.82, slope 1.10). This traces to the `pos_weight` term in
   the training loss shifting predictions away from the true base rate.
   Post-hoc recalibration (planned, not yet implemented) is needed before
   any probability output should be trusted at face value.
