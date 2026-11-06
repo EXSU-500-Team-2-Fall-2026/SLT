@@ -1,0 +1,60 @@
+group,site,lesions,pct_of_lesions
+ham10000,lower extremity,1584,21.2
+ham10000,back,1534,20.54
+ham10000,trunk,1271,17.01
+ham10000,abdomen,822,11.0
+ham10000,upper extremity,776,10.39
+ham10000,face,470,6.29
+ham10000,chest,240,3.21
+ham10000,foot,228,3.05
+ham10000,unknown,203,2.72
+ham10000,neck,119,1.59
+ham10000,scalp,78,1.04
+ham10000,hand,64,0.86
+ham10000,genital,45,0.6
+ham10000,ear,35,0.47
+ham10000,acral,3,0.04
+train,lower extremity,1343,21.15
+train,back,1332,20.98
+train,trunk,1086,17.11
+train,abdomen,693,10.92
+train,upper extremity,671,10.57
+train,face,386,6.08
+train,foot,195,3.07
+train,chest,185,2.91
+train,unknown,176,2.77
+train,neck,97,1.53
+train,scalp,61,0.96
+train,hand,53,0.83
+train,genital,39,0.61
+train,ear,32,0.5
+train,acral,2,0.03
+val,lower extremity,241,21.5
+val,back,202,18.02
+val,trunk,185,16.5
+val,abdomen,129,11.51
+val,upper extremity,105,9.37
+val,face,84,7.49
+val,chest,55,4.91
+val,foot,33,2.94
+val,unknown,27,2.41
+val,neck,22,1.96
+val,scalp,17,1.52
+val,hand,11,0.98
+val,genital,6,0.54
+val,ear,3,0.27
+val,acral,1,0.09
+test,unknown,332,27.17
+test,back,196,16.04
+test,lower extremity,193,15.79
+test,trunk,140,11.46
+test,upper extremity,102,8.35
+test,abdomen,100,8.18
+test,face,54,4.42
+test,chest,31,2.54
+test,foot,31,2.54
+test,neck,16,1.31
+test,hand,9,0.74
+test,scalp,8,0.65
+test,ear,5,0.41
+test,genital,5,0.41

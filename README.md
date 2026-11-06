@@ -55,6 +55,16 @@ cd data/raw && for f in *.zip; do unzip -o "$f"; done
 
 This produces `data/raw/HAM10000_images/` (10,015 `.jpg`), `data/raw/HAM10000_segmentations_lesion_tschandl/` (10,015 masks), `data/raw/ISIC2018_Task3_Test_Images/` (1,511 `.jpg`; the test ground-truth file lists one additional `image_id`, `ISIC_0035068`, that was withdrawn from this Dataverse distribution), and the `.tab` metadata/ground-truth files. `data/splits/*.csv` are already committed, so this step is only needed to retrain a model or rebuild the splits/features from scratch.
 
+## Checking the splits and describing the data
+
+   ```bash
+   python -m src.data.validate_splits --hash-images   # leakage, label, duplicate and file checks -> reports/dataset/split_audit.md
+   python -m src.data.describe_dataset                # Table I counts and demographics -> reports/dataset/*.csv
+   ```
+
+   The audit reports one known issue (WARN): 5 of the 18 near-duplicate image pairs identified by Abhishek et al. (2025), which carry different lesion IDs, fall on opposite sides of the train/validation split. They will be merged into single groups before the final re-split.
+   ````
+
 ## Reproducing the results
 
 ```bash
