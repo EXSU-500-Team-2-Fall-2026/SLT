@@ -45,6 +45,18 @@ Patient-level independence cannot be established from lesion identifiers alone. 
 
 The data are **not** committed to this repository (see `.gitignore`).
 
+## Known duplicate limitation and deferred correction
+
+The [data-branch split audit](https://github.com/EXSU-500-Team-2-Fall-2026/SLT/blob/efadcbabcc96c43b1a30512c3c00e0504bfbaabf/reports/dataset/split_audit.md) identifies 5 of 18 known near-duplicate image pairs crossing the current training/validation boundary despite having different lesion IDs. Zero shared image IDs or lesion IDs therefore does not establish independence of image content. These pairs provide a potential information-leakage route; the magnitude and direction of their effect on individual metrics have not been measured. Existing validation results are preliminary and potentially optimistic.
+
+**Midterm decision (2026-11-06):** retain the current split manifests, trained-model results, and feature tables for the midterm, disclose this limitation, and defer correction of the grouping rule and rerunning experiments until after the midterm submission. No corrected split or corrected performance is claimed.
+
+After submission, the team plans to verify the published duplicate relationships and group images using connected components of shared lesion IDs and confirmed near-duplicate links. It will retain seed 42 and approximately 15% of combined groups for validation, audit and freeze the corrected manifests, regenerate development features, and retrain/re-evaluate all three models. The original manifests and results will be preserved and identified by version. The corrected split will not be chosen by model performance.
+
+The held-out cohort remains reserved for final assessment. These five pairs concern train/validation and do not by themselves require changing the held-out cohort. Any newly discovered development/test overlap will be handled using a documented rule before prediction-based evaluation. Recalibration and final testing will follow the corrected development workflow.
+
+See [experimental design](reports/experimental-design.md) for current methods and planned work. Audit code and generated tables are currently on `data/split-audit`; the pinned audit link above records the evidence without implying those additions have been merged.
+
 ## Getting the data
 
 ```bash
@@ -57,13 +69,14 @@ This produces `data/raw/HAM10000_images/` (10,015 `.jpg`), `data/raw/HAM10000_se
 
 ## Checking the splits and describing the data
 
-   ```bash
-   python -m src.data.validate_splits --hash-images   # leakage, label, duplicate and file checks -> reports/dataset/split_audit.md
-   python -m src.data.describe_dataset                # Table I counts and demographics -> reports/dataset/*.csv
-   ```
+```bash
+python -m src.data.validate_splits --hash-images   # audit -> reports/dataset/split_audit.md
+python -m src.data.describe_dataset              # counts and demographics -> reports/dataset/*.csv
+```
 
-   The audit reports one known issue (WARN): 5 of the 18 near-duplicate image pairs identified by Abhishek et al. (2025), which carry different lesion IDs, fall on opposite sides of the train/validation split. They will be merged into single groups before the final re-split.
-   ````
+The audit reports the known five cross-split near-duplicate pairs as WARN. A successful exit means no FAIL checks were found; it does not mean the data are free of leakage. Raw-data checks are reported as SKIP when their inputs are unavailable. The grouping correction and rerunning all three models remain deferred until after midterm submission, as described above.
+
+The saved [split audit](reports/dataset/split_audit.md) and dataset tables were generated on the data contributor's environment. See [pre-merge review](reports/dataset/premerge-review.md) for independently rerun checks and their limits. The table generator excludes the documented withdrawn test image; demographics are counted per lesion, not per patient.
 
 ## Reproducing the results
 
@@ -86,7 +99,7 @@ Each model script trains on `data/splits/train.csv`, reports on `data/splits/val
 
 ## Results
 
-**Preliminary validation-set performance**, threshold 0.5. The listed 95% percentile bootstrap CIs use 1,000 image-level resamples. They do not account for dependence between images of the same lesion, repeated training, or development-set model selection. ECE and calibration slope/intercept do not currently have CIs. AUPRC is implemented as average precision.
+**Preliminary validation-set performance on the original split with the known cross-split near-duplicate limitation**, threshold 0.5. No performance correction or retraining has been carried out for this finding. The listed 95% percentile bootstrap CIs use 1,000 image-level resamples. They do not account for dependence between images of the same lesion, repeated training, or development-set model selection. ECE and calibration slope/intercept do not currently have CIs. AUPRC is implemented as average precision.
 
 | Model | AUROC | AUPRC | Sensitivity | Specificity | Brier score | ECE |
 |---|---|---|---|---|---|---|
@@ -102,6 +115,7 @@ The CNN was trained from scratch because the original training environment could
 
 ## Planned evaluation work
 
+- After midterm submission, implement duplicate-aware grouping, version and freeze corrected development splits, regenerate features, and retrain/re-evaluate all three models; preserve original results as preliminary.
 - Preserve image and lesion IDs with predictions; implement lesion-level bootstrap CIs and paired model-difference estimates.
 - Specify and implement recalibration with independent assessment; do not evaluate improvement solely on calibrator-fitting cases.
 - Report diagnosis-specific sensitivity, particularly for melanoma.
