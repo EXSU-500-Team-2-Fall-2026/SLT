@@ -59,6 +59,8 @@ been used for any decision about this model yet, as documented by the team. The 
 
 ## Metrics (preliminary validation results, threshold 0.5)
 
+These values were obtained using the original split, which has five known near-duplicate pairs crossing training and validation. They remain unchanged for the midterm and may be optimistic; no corrected experiment has been completed.
+
 The listed 95% percentile CIs use 1,000 image-level bootstrap resamples. They do not account for within-lesion dependence, repeated training, or model selection on validation. Lesion-level CIs and paired comparisons are planned. CIs are currently computed for AUROC, AUPRC (average precision), sensitivity, specificity, and Brier score, not for ECE or calibration slope/intercept.
 
 | Metric | Value |
@@ -75,13 +77,16 @@ in `reports/classical_ml/metrics.json` for comparison.
 
 ## Known limitations
 
+- **Known cross-split near-duplicates.** The [data-branch split audit](https://github.com/EXSU-500-Team-2-Fall-2026/SLT/blob/efadcbabcc96c43b1a30512c3c00e0504bfbaabf/reports/dataset/split_audit.md) identifies 5 of 18 known near-duplicate image pairs crossing the current training/validation boundary despite having different lesion IDs. Zero shared image IDs or lesion IDs therefore does not establish independence of image content. These pairs provide a potential information-leakage route; the magnitude and direction of their effect on individual metrics have not been measured. Existing validation results are preliminary and potentially optimistic.
+- **Correction deferred until after midterm submission.** The current model and metrics remain associated with the original manifests. The team plans to verify duplicate relationships, keep connected lesion/duplicate groups together, freeze versioned corrected splits, regenerate features, and retrain/re-evaluate all three models. Updated results will be reported only after those experiments. The held-out cohort remains reserved for final assessment; its overlap/eligibility checks are still required.
+
 - **Probability reliability remains limited.** The CNN has the highest ECE of the three models, although the metadata baseline has a slightly higher Brier score. The validation calibration intercept (−1.82) and slope (1.10), together with the reliability diagram, suggest overestimation of positive-group probabilities. Class weighting is a plausible contributor, but this comparison does not isolate its effect. Post-hoc recalibration is planned; its method and a procedure separating fitting from assessment must be specified. Calculating calibration slope/intercept currently measures calibration and does not apply a correction to predictions.
 - **No pretrained backbone.** The CNN was trained from scratch because pretrained weights could not be downloaded in the original environment. Transfer learning is a possible future comparison; a performance improvement has not been established here.
 
 
 - **No patient identifier in the source data.** HAM10000's metadata gives
   `lesion_id` but no separate patient ID, so the lesion-level train/val
-  split (the finest grouping the released data actually supports) cannot
+  split cannot
   rule out the same patient contributing lesions to both splits.
 - **Dataset provenance and population.** HAM10000 draws from a limited
   set of academic dermatology clinics in Austria and Australia. Skin tone

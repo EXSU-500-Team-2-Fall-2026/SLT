@@ -48,6 +48,27 @@ The existing manifest audit found no shared image IDs or lesion IDs across parti
 
 Current reported model results are validation results. The reviewed training scripts do not implement the final held-out comparison.
 
+## Known duplicate limitation and midterm decision
+
+The [data-branch split audit](https://github.com/EXSU-500-Team-2-Fall-2026/SLT/blob/efadcbabcc96c43b1a30512c3c00e0504bfbaabf/reports/dataset/split_audit.md) identifies 5 of 18 known near-duplicate image pairs crossing the current training/validation boundary despite having different lesion IDs. Zero shared image IDs or lesion IDs therefore does not establish independence of image content. These pairs provide a potential information-leakage route; the magnitude and direction of their effect on individual metrics have not been measured. Existing validation results are preliminary and potentially optimistic.
+
+**Midterm decision (2026-11-06):** retain the current split manifests, trained-model results, and feature tables for the midterm, disclose this limitation, and defer correction of the grouping rule and rerunning experiments until after the midterm submission. No corrected split or corrected performance is claimed.
+
+This finding qualifies the identifier-disjointness statement above: distinct identifiers do not guarantee distinct lesion content. The original split and results will remain traceable rather than being described as corrected.
+
+### Planned correction after midterm submission
+
+1. Verify the published near-duplicate relationships and visually inspect flagged pairs; record uncertain matches.
+2. Create connected groups linking images that share a lesion ID or a confirmed near-duplicate relationship. Transitive links must remain together.
+3. Rebuild development partitions using these combined groups, seed 42, and approximately 15% of groups for validation. The grouping change may alter image/lesion counts and class proportions. Do not select a split based on model performance.
+4. Require no shared image IDs, lesion IDs, or confirmed duplicate groups across partitions. Recheck class balance, missingness, and image eligibility, then freeze and version corrected manifests while preserving the originals.
+5. Regenerate feature tables and metadata joins; refit training-derived preprocessing and retrain all three models, including validation-based CNN checkpoint selection.
+6. Regenerate metrics, uncertainty estimates, and calibration artifacts, explicitly identifying the split version and training settings. Do not merely remove validation images and relabel the old results as corrected.
+
+The five reported crossing pairs concern training/validation, so they do not by themselves require changing the held-out cohort. Continue the held-out overlap audit. If development/test overlap is found, prespecify and document its handling before evaluating predictions, preserving test independence. Recalibration fitting/assessment and final held-out comparison will follow the corrected development workflow.
+
+The audit implementation and generated data tables currently reside on `data/split-audit`; their integration into `main` is a separate repository task. The pinned report above is the evidence for this limitation.
+
 ## Implemented models
 
 | Model | Input | Current implementation |
@@ -117,4 +138,6 @@ Models, preprocessing, recalibration procedures, and operating thresholds will b
 
 This is an educational, retrospective benchmark study. Its conclusions concern the evaluated diagnostic categories, data distributions, and experimental protocol. It does not establish suitability for ordinary smartphone photographs, populations outside the evaluated data, or clinical deployment.
 
-Remaining work includes held-out cohort verification, final evaluation code, an independent recalibration protocol, and lesion-aware uncertainty estimation. These are planned activities rather than completed methods.
+The known cross-split near-duplicates limit the interpretation of existing validation results, independently of the image-level bootstrap limitation. Correction and retraining are deferred until after the midterm submission.
+
+Remaining work includes duplicate-aware regrouping, corrected split versioning and retraining of all three models, held-out cohort verification, final evaluation code, an independent recalibration protocol, and lesion-aware uncertainty estimation. These are planned activities rather than completed methods.
