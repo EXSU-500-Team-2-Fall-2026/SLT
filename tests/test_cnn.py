@@ -1,7 +1,10 @@
-import torch
-from torch.utils.data import DataLoader, TensorDataset
+import pytest
 
-from src.models.cnn import SimpleCNN, train_model
+torch = pytest.importorskip("torch")
+
+from torch.utils.data import DataLoader, TensorDataset  # noqa: E402
+
+from src.models.cnn import SimpleCNN, train_model  # noqa: E402
 
 
 def test_simple_cnn_forward_pass_shape():
@@ -23,7 +26,7 @@ def test_train_model_does_not_crash_when_val_auroc_is_nan():
     val_loader = _loader(torch.randn(8, 3, 96, 96), torch.zeros(8))  # single class -> nan AUROC
 
     model = SimpleCNN()
-    model, history, best_auroc = train_model(
+    model, history, _ = train_model(
         model, train_loader, val_loader, torch.device("cpu"), epochs=2, lr=1e-3, patience=5, pos_weight=1.0
     )
     assert len(history) == 2

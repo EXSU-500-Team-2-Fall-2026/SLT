@@ -1,0 +1,5 @@
+group,images,lesions,malignant_images,malignant_images_pct,malignant_lesions,malignant_lesions_pct,age_median,age_q1,age_q3,age_mean,age_sd,lesions_missing_age,male_lesions,male_pct,female_lesions,female_pct,unknown_sex_lesions,unknown_site_lesions,lesions_with_conflicting_age,lesions_with_conflicting_sex,lesions_with_several_sites
+ham10000,10015,7470,1954,19.51,1169,15.65,50.0,40.0,65.0,51.66,16.02,52,4001,53.56,3419,45.77,50,203,0,0,2
+train,8488,6349,1654,19.49,988,15.56,50.0,40.0,65.0,51.58,15.99,45,3378,53.21,2927,46.1,44,176,0,0,2
+val,1527,1121,300,19.65,181,16.15,50.0,40.0,65.0,52.11,16.18,7,623,55.58,492,43.89,6,27,0,0,0
+test,1511,1222,307,20.32,213,17.43,50.0,40.0,65.0,50.79,16.65,281,504,41.24,426,34.86,292,332,0,0,0
