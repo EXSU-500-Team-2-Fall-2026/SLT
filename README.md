@@ -4,22 +4,27 @@
 
 ## Problem
 
-We classify dermoscopic images of skin lesions as **malignant or pre-malignant** (melanoma, basal cell carcinoma, actinic keratosis / intraepithelial carcinoma) or **benign** (melanocytic nevus, benign keratosis, dermatofibroma, vascular lesion). The intended use is to support triage of lesions for dermatology referral.
+**Research question:** How effectively can patient metadata, handcrafted dermoscopic image features, and learned image representations distinguish malignant/premalignant from benign lesions in HAM10000, and how well calibrated are their probability estimates?
 
-We compare three types of model:
+We classify dermoscopic images using an operational binary grouping: **malignant/premalignant** includes melanoma (`mel`), basal cell carcinoma (`bcc`), and actinic keratosis / intraepithelial carcinoma (`akiec`); **benign** includes melanocytic nevus (`nv`), benign keratosis (`bkl`), dermatofibroma (`df`), and vascular lesion (`vasc`). “Higher-concern” and “lower-concern” refer only to these defined groups. They are not measured clinician concern ratings or referral requirements, and do not imply identical severity or management within either group.
 
-1. A baseline using patient metadata only (age, sex, body site).
-2. A classical machine learning model using hand-crafted image features.
-3. A fine-tuned convolutional neural network (CNN).
+This retrospective benchmark is motivated by lesion assessment and potential triage support. It evaluates classification and probability estimation in an existing dermoscopic dataset; it does not measure referral decisions, clinical benefit, general population screening, or suitability for ordinary smartphone photographs.
 
-The models are compared on two questions:
+We compare three implemented models:
 
-- **Discrimination:** how well does each model separate malignant from benign lesions? Measured with AUROC, AUPRC, and sensitivity/specificity at a stated threshold.
-- **Calibration:** can its predicted probabilities be trusted? For example, do lesions given an "80% risk" turn out to be malignant about 80% of the time? Measured with reliability diagrams, Brier score, expected calibration error, and calibration slope and intercept, both before and after post-hoc recalibration.
+1. Logistic regression using age, sex, and anatomical location, with imputation, encoding, and balanced class weights.
+2. Histogram gradient boosting using handcrafted image features, with balanced class weights.
+3. A four-block convolutional neural network (CNN) with global average pooling, trained from scratch on 96 × 96 images with augmentation and a class-weighted loss. No pretrained backbone is used.
 
-**Why it matters:** skin cancer is the most common cancer, and outcomes depend on catching malignant lesions early. A triage tool is only useful if clinicians can act on its output. A model that ranks lesions well but reports miscalibrated probabilities can still push referral decisions in the wrong direction.
+These comparisons change both information source and modelling approach; they do not isolate the causal contribution of image information, representation learning, or model complexity.
 
-**Task type:** binary image classification (supervised), with calibration analysis.
+- **RQ1 — Discrimination:** how well does each model distinguish the two diagnostic groups? Current measures are AUROC, AUPRC (implemented as average precision), and sensitivity/specificity at threshold 0.5. This threshold is a reporting convention, not a clinically validated referral threshold.
+- **RQ2 — Calibration:** how closely do predicted probabilities correspond to observed positive-group frequencies? Current outputs are reliability diagrams, Brier score, ECE using 10 equal-width probability bins, and calibration slope/intercept. Brier score measures overall probability prediction error, not calibration alone; ECE is supplementary and depends on binning.
+- **Planned extension:** assess whether post-hoc recalibration improves probability reliability on cases independent of those used to fit the calibrator. The method and independent assessment procedure are not yet implemented or finalized.
+
+The comparison is exploratory: greater model complexity is not assumed to improve either discrimination or calibration.
+
+**Task type:** retrospective supervised binary classification with calibration analysis.
 
 ## Dataset
 
@@ -29,12 +34,14 @@ The models are compared on two questions:
 - **Licence:** CC BY-NC 4.0 (non-commercial use)
 - **Citation:** Tschandl P, Rosendahl C, Kittler H. The HAM10000 dataset, a large collection of multi-source dermatoscopic images of common pigmented skin lesions. *Scientific Data* 5, 180161 (2018).
 
-**Splits** (declared before any model was trained, at the lesion level so no lesion's images cross a split boundary; see `src/data/make_splits.py` and the committed manifests in `data/splits/`):
+**Splits:** the repository records these as declared before modelling. HAM10000 train/validation partitions use `GroupShuffleSplit` grouped by `lesion_id`, with seed 42 and 15% of lesion groups assigned to validation; diagnosis is not explicitly stratified. The separate held-out distribution is not part of an 85/15/15 division. See `src/data/make_splits.py` and committed manifests in `data/splits/`.
 
 - **Train:** 8,488 images / 6,349 lesions.
-- **Validation:** 1,527 images / 1,121 lesions. All tuning, thresholding and recalibration use this set only.
-- **Held-out test:** the official ISIC 2018 Task 3 test set, downloaded from the same Dataverse record. Its ground truth lists 1,512 images of 1,223 lesions; 1,511 images (1,222 lesions) are available, because `ISIC_0035068` was withdrawn from this distribution. Verified to share zero `image_id`/`lesion_id` with train or validation. It is evaluated once, after all models are finalised.
+- **Validation:** 1,527 images / 1,121 lesions. Used for current development evaluation and CNN early stopping. Current reports use threshold 0.5; a protocol separating recalibration fitting from independent assessment remains to be specified using development data.
+- **Held-out test:** the official ISIC 2018 Task 3 test set, downloaded from the same Dataverse record. Its ground truth lists 1,512 images of 1,223 lesions; 1,511 images (1,222 lesions) are available, because `ISIC_0035068` was withdrawn from this distribution. The manifest audit found zero shared `image_id`/`lesion_id` with train or validation. This does not establish absence of visual duplicates or patient overlap. Final evaluation is planned once models, preprocessing, calibrators, and thresholds are frozen; held-out results will not be used to revise those choices. The reviewed training scripts currently evaluate validation only.
 - **Reference comparison:** reader and CNN data from Tschandl et al., *Nature Medicine* 26, 1229–1234 (2020), included in the same download. Used only for comparison, never for training.
+
+Patient-level independence cannot be established from lesion identifiers alone. Before final evaluation, the team will verify held-out provenance and its relationship to HAM10000, duplicate images where feasible, label compatibility, metadata availability for the baseline, preprocessing consistency, exclusions, and a common eligible cohort for paired comparisons.
 
 The data are **not** committed to this repository (see `.gitignore`).
 
@@ -69,7 +76,7 @@ Each model script trains on `data/splits/train.csv`, reports on `data/splits/val
 
 ## Results
 
-Validation-set performance (95% bootstrap CI, 1000 resamples), threshold 0.5:
+**Preliminary validation-set performance**, threshold 0.5. The listed 95% percentile bootstrap CIs use 1,000 image-level resamples. They do not account for dependence between images of the same lesion, repeated training, or development-set model selection. ECE and calibration slope/intercept do not currently have CIs. AUPRC is implemented as average precision.
 
 | Model | AUROC | AUPRC | Sensitivity | Specificity | Brier score | ECE |
 |---|---|---|---|---|---|---|
@@ -77,7 +84,21 @@ Validation-set performance (95% bootstrap CI, 1000 resamples), threshold 0.5:
 | 2. Classical ML (hand-crafted features, gradient boosting) | 0.840 [0.818, 0.862] | 0.555 [0.502, 0.616] | 0.747 [0.697, 0.799] | 0.730 [0.708, 0.756] | 0.160 | 0.163 |
 | 3. CNN (trained from scratch, no pretrained backbone) | 0.850 [0.830, 0.869] | 0.528 [0.472, 0.588] | 0.920 [0.889, 0.949] | 0.643 [0.617, 0.668] | 0.197 | 0.253 |
 
-The classical model's AUROC interval does not overlap the baseline's, which suggests that image information adds discrimination; the CNN's interval overlaps the classical model's, so its further gain is not distinguishable from noise at this sample size. Paired bootstrap comparisons will replace these interval-overlap readings in the final analysis. All three models overestimate risk: their calibration intercepts are below zero (−1.47, −1.22 and −1.82 for models 1–3) with slopes near 1, and their reliability diagrams in `reports/*/reliability_diagram.png` sit below the diagonal. The CNN is the worst calibrated and the classical model the best. This is a known side effect of class-imbalance handling (`class_weight="balanced"` / a `pos_weight` loss) shifting predicted probabilities away from the true base rate, and the motivation for the post-hoc recalibration step mentioned above. The CNN was trained without a pretrained ImageNet backbone because this environment's network policy blocks both `download.pytorch.org` and `huggingface.co`; a transfer-learning model would likely perform better.
+The CNN has the highest observed validation AUROC, while histogram gradient boosting has higher observed AUPRC and lower Brier score and ECE. These are descriptive differences; separate confidence-interval overlap does not establish statistical superiority, equivalence, or absence of a difference. Paired lesion-level bootstrap comparisons are planned. Input information and model family change together, so the observed differences cannot be attributed to image information alone.
+
+The negative calibration intercepts (−1.47, −1.22, −1.82 for models 1–3), slopes near 1, and reliability diagrams suggest systematic overestimation of positive-group probabilities on validation. Class weighting is a plausible contributor, but its causal effect has not been isolated by an ablation. The CNN has the highest ECE, while the metadata baseline has a slightly higher Brier score than the CNN; calibration and overall probability error should therefore be interpreted using multiple measures.
+
+The CNN was trained from scratch because the original training environment could not download pretrained weights. Transfer learning is a possible future comparison; improved performance has not been demonstrated here.
+
+## Planned evaluation work
+
+- Preserve image and lesion IDs with predictions; implement lesion-level bootstrap CIs and paired model-difference estimates.
+- Specify and implement recalibration with independent assessment; do not evaluate improvement solely on calibrator-fitting cases.
+- Report diagnosis-specific sensitivity, particularly for melanoma.
+- Verify the held-out cohort and implement final evaluation for all models, including metadata compatibility and explicit missing-input/exclusion handling.
+- Prespecify any additional operating-point criterion using development data, and freeze thresholds before final testing.
+
+These are planned activities, not completed methods or results.
 
 ## Team roles
 
@@ -99,7 +120,7 @@ The team used the following generative AI tools:
 - **Claude** (Anthropic, claude.ai, [version]): comparing candidate datasets, drafting and revising this README, planning the evaluation protocol, drafting and editing the midterm report, identifying candidate references, and reviewing code and data checks.
 - **Claude Code** (Anthropic, [version]): writing and debugging the data download, split, feature, model, evaluation and test code, and drafting `MODEL_CARD.md` and `CONTRIBUTIONS.md`.
 - **ChatGPT** (OpenAI, [version]): drafting an early project plan.
-- **OpenAI Codex** ([version]): finding candidate papers and building the literature evidence table in `reports/literature-review.md`.
+- **OpenAI Codex** ([version]): finding candidate papers, building the literature evidence table in `reports/literature-review.md`, helping revise the experimental design, and aligning repository documentation with implemented and planned methods.
 - **Google Gemini** ([version]): explaining one candidate paper during the literature review.
 
 All AI-generated code was reviewed and tested by the authors, every reference was checked against the original publication by at least one author, and no data or results were generated or altered by an AI tool. The authors take full responsibility for this work.
