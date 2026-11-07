@@ -111,9 +111,9 @@ These measures will be interpreted together. Brier score measures overall probab
 
 **Logistic recalibration has been selected as the future method for all three models and is not yet implemented in the reviewed scripts.** A separate intercept and slope will be fitted to each model's logit-transformed probabilities on disjoint calibration data without class balancing. Independent before/after assessment will use the frozen held-out cohort. Improvement measured on calibrator-fitting cases alone will not be treated as independent evidence.
 
-### Agreed future recalibration protocol
+### Future recalibration protocol
 
-**Status:** agreed plan, not implemented. Execute after midterm submission and duplicate-aware regrouping; existing manifests, feature tables, and preliminary results remain unchanged. Action owners will be discussed with the team and are not assigned here.
+**Status:** planned, not implemented. Execute after midterm submission and duplicate-aware regrouping; existing manifests, feature tables, and preliminary results remain unchanged. Action owners will be discussed with the team and are not assigned here.
 
 #### 1. Freeze disjoint development subsets
 
