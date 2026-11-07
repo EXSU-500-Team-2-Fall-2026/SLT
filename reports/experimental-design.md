@@ -59,14 +59,14 @@ This finding qualifies the identifier-disjointness statement above: distinct ide
 
 1. Verify the published near-duplicate relationships and visually inspect flagged pairs; record uncertain matches.
 2. Create connected groups linking images that share a lesion ID or a confirmed near-duplicate relationship. Transitive links must remain together.
-3. Rebuild development partitions using these combined groups, seed 42, and approximately 15% of groups for validation. The grouping change may alter image/lesion counts and class proportions. Do not select a split based on model performance.
+3. Rebuild development partitions using these combined groups and seed 42, starting with approximately 85% training, 7.5% tuning/validation, and 7.5% calibration groups, as specified in the future recalibration protocol below. Audit class/group counts before freezing. The grouping change may alter image/lesion counts and class proportions. Do not select a split based on model performance.
 4. Require no shared image IDs, lesion IDs, or confirmed duplicate groups across partitions. Recheck class balance, missingness, and image eligibility, then freeze and version corrected manifests while preserving the originals.
 5. Regenerate feature tables and metadata joins; refit training-derived preprocessing and retrain all three models, including validation-based CNN checkpoint selection.
 6. Regenerate metrics, uncertainty estimates, and calibration artifacts, explicitly identifying the split version and training settings. Do not merely remove validation images and relabel the old results as corrected.
 
 The five reported crossing pairs concern training/validation, so they do not by themselves require changing the held-out cohort. Continue the held-out overlap audit. If development/test overlap is found, prespecify and document its handling before evaluating predictions, preserving test independence. Recalibration fitting/assessment and final held-out comparison will follow the corrected development workflow.
 
-The audit implementation and generated data tables currently reside on `data/split-audit`; their integration into `main` is a separate repository task. The pinned report above is the evidence for this limitation.
+The audit implementation and generated tables have been integrated into `main`. The pinned report above preserves the original audit evidence.
 
 ## Implemented models
 
@@ -109,7 +109,82 @@ The current implementation produces:
 
 These measures will be interpreted together. Brier score measures overall probability prediction error and is not exclusively a measure of calibration. ECE will be treated as supplementary because its value depends on the binning procedure.
 
-**Post-hoc recalibration is planned and is not yet implemented in the reviewed model scripts.** Before implementation, the team will specify the recalibration method and a development-data procedure that separates calibrator fitting from assessment. Improvement measured on the same cases used to fit the calibrator will not be treated as independent evidence.
+**Logistic recalibration has been selected as the future method for all three models and is not yet implemented in the reviewed scripts.** A separate intercept and slope will be fitted to each model's logit-transformed probabilities on disjoint calibration data without class balancing. Independent before/after assessment will use the frozen held-out cohort. Improvement measured on calibrator-fitting cases alone will not be treated as independent evidence.
+
+### Agreed future recalibration protocol
+
+**Status:** agreed plan, not implemented. Execute after midterm submission and duplicate-aware regrouping; existing manifests, feature tables, and preliminary results remain unchanged. Action owners will be discussed with the team and are not assigned here.
+
+#### 1. Freeze disjoint development subsets
+
+Use connected groups joining shared lesion IDs and confirmed near-duplicate relationships. The starting allocation is:
+
+| Future subset | Approximate share of corrected HAM10000 development groups | Permitted use |
+|---|---:|---|
+| Training | 85% | Fit preprocessing and underlying models |
+| Tuning/validation | 7.5% | Model/hyperparameter selection and CNN checkpoint selection |
+| Calibration | 7.5% | Fit a separate probability mapping for each frozen model |
+
+These are proportions of combined groups, not promised image counts, and exclude the separate held-out evaluation cohort. Use seed 42, audit group disjointness, and inspect positive/negative group counts and metadata availability before freezing the allocation. If counts make a subset infeasible, document a revised allocation before model fitting; do not search for splits yielding favorable scores. This supersedes the earlier planned 85/15 development split for future experiments only. The current 8,488/1,527 image split remains the midterm split.
+
+Save versioned manifests and a split audit with group, lesion, image, and class counts. Calibration cases must not influence model fitting, preprocessing fitting, early stopping, hyperparameter selection, or feature selection. Fit training-derived preprocessing on training data only; use deterministic evaluation preprocessing for tuning, calibration, and test cases.
+
+#### 2. Retrain, select, and freeze the underlying models
+
+Regenerate handcrafted features and metadata joins for the corrected partitions. Retrain all three model families. Use tuning data for development choices and CNN checkpoint selection, then freeze each fitted model and its preprocessing. Preserve image IDs, lesion IDs, combined-group IDs, labels, original probabilities, and split/model versions with prediction outputs.
+
+Do not refit the underlying models after calibrator fitting. Any later model refit invalidates the associated calibrator and requires a new development-only calibration step before test evaluation.
+
+#### 3. Fit logistic recalibration on calibration data only
+
+For each frozen model, fit a separate logistic mapping:
+
+`p_cal = sigmoid(a + b * logit(p_original))`
+
+The intercept adjusts the overall probability level; the slope adjusts the spread of the log-odds. Clip probabilities away from 0 and 1 before the logit and record the numerical clipping rule, solver, regularization choice, and fitted coefficients in the reproducibility record. This is logistic recalibration of probabilities, not merely the existing diagnostic slope/intercept calculation and not a new image classifier.
+
+Fit using the observed calibration outcomes without balanced class weights, over/undersampling, or artificial prevalence balancing. The underlying model's training weights remain a separate design choice. Calibration fitting uses the image-level target consistent with reported image-level metrics; preserve grouping for uncertainty analysis.
+
+Do not claim calibration improvement using only these fitting cases. Check numerical convergence and record failures or insufficient class support using a prespecified development-only handling rule before accessing test performance. The method is common across all three models; do not select calibrator families using held-out scores.
+
+#### 4. Freeze the evaluation plan before held-out predictions
+
+Complete provenance, duplicate-overlap, label-compatibility, metadata, preprocessing, and exclusion checks. Establish and record a common eligible held-out cohort for direct model comparisons. Prespecify the numerical fitting settings, failure handling, binning, bootstrap settings, and any threshold policy using development information only.
+
+Freeze underlying models, calibrators, preprocessing, model-selection decisions, thresholds, and the evaluation cohort before the final comparison. The held-out cohort remains reserved; its outcomes must not fit calibrators, choose methods, or revise model/threshold selection.
+
+#### 5. Compare original and recalibrated probabilities on the same held-out cases
+
+| Role | Prespecified comparison |
+|---|---|
+| Primary before/after outcome | Brier-score difference: recalibrated minus original; negative favors recalibration |
+| Supporting calibration evidence | Original/recalibrated reliability diagrams and calibration slope/intercept |
+| Supplementary measure | ECE using the same 10 equal-width probability bins |
+| Continued discrimination reporting | AUROC and average precision before and after recalibration |
+| Operating-point reporting | Sensitivity/specificity under a documented threshold rule |
+| Uncertainty | Paired lesion-group bootstrap intervals for before/after metric differences |
+
+Brier score assesses overall probability error, not calibration alone. Interpret its difference alongside the calibration artifacts. Estimate performance at the image level; resample lesion groups together, retaining all their images. Where confirmed duplicate links connect different lesion IDs, keep the full connected group together in resampling too. Use the same sampled groups for original/recalibrated predictions and for paired comparisons across models on their common cohort. Document that intervals condition on the frozen fitted models and calibrators and do not capture all training variability.
+
+The existing 0.5 threshold is a reporting convention. Applying 0.5 to original and recalibrated probabilities may change sensitivity and specificity; describe that as a change in operating point, not automatically as improved triage. Any additional operating-point policy must be fixed before held-out evaluation.
+
+Report improvement, deterioration, or no clear evidence of change. Do not use test results to refit the models/calibrators, choose a different recalibration method, or change thresholds. Preserve the original preliminary midterm outputs and report the corrected experiments separately.
+
+#### Future action checklist
+
+- [ ] Confirm duplicate relationships and create connected groups.
+- [ ] Inspect subset feasibility; freeze and version training/tuning/calibration manifests and audits.
+- [ ] Regenerate inputs and retrain all three models using only the permitted subsets.
+- [ ] Freeze models/preprocessing and save aligned calibration predictions.
+- [ ] Finalize numerical recalibration settings and failure handling; implement and test the logistic mappings.
+- [ ] Fit and save each calibrator on calibration data without class balancing.
+- [ ] Complete held-out cohort checks and freeze the before/after evaluation plan.
+- [ ] Evaluate original and recalibrated predictions on identical held-out cases; generate paired uncertainty estimates and calibration artifacts.
+- [ ] Report all outcomes and update documentation without overwriting preliminary results.
+
+Responsibilities and team deadlines remain to be agreed. No owner is inferred from the existing role list.
+
+Method references: [probability calibration guidance](https://scikit-learn.org/stable/modules/calibration.html); [Guo et al. (2017)](https://proceedings.mlr.press/v70/guo17a.html) for calibration context and the distinction from single-parameter temperature scaling.
 
 ## Uncertainty and model comparisons
 

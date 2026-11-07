@@ -20,7 +20,7 @@ These comparisons change both information source and modelling approach; they do
 
 - **RQ1 — Discrimination:** how well does each model distinguish the two diagnostic groups? Current measures are AUROC, AUPRC (implemented as average precision), and sensitivity/specificity at threshold 0.5. This threshold is a reporting convention, not a clinically validated referral threshold.
 - **RQ2 — Calibration:** how closely do predicted probabilities correspond to observed positive-group frequencies? Current outputs are reliability diagrams, Brier score, ECE using 10 equal-width probability bins, and calibration slope/intercept. Brier score measures overall probability prediction error, not calibration alone; ECE is supplementary and depends on binning.
-- **Planned extension:** assess whether post-hoc recalibration improves probability reliability on cases independent of those used to fit the calibrator. The method and independent assessment procedure are not yet implemented or finalized.
+- **Planned extension:** assess whether post-hoc recalibration improves probability reliability on cases independent of those used to fit the calibrator. Logistic recalibration has been selected for each model, using a separate development calibration subset and independent held-out assessment. Implementation and numerical settings remain future work; see the [agreed protocol](reports/experimental-design.md#agreed-future-recalibration-protocol).
 
 The comparison is exploratory: greater model complexity is not assumed to improve either discrimination or calibration.
 
@@ -37,7 +37,7 @@ The comparison is exploratory: greater model complexity is not assumed to improv
 **Splits:** the repository records these as declared before modelling. HAM10000 train/validation partitions use `GroupShuffleSplit` grouped by `lesion_id`, with seed 42 and 15% of lesion groups assigned to validation; diagnosis is not explicitly stratified. The separate held-out distribution is not part of an 85/15/15 division. See `src/data/make_splits.py` and committed manifests in `data/splits/`.
 
 - **Train:** 8,488 images / 6,349 lesions.
-- **Validation:** 1,527 images / 1,121 lesions. Used for current development evaluation and CNN early stopping. Current reports use threshold 0.5; a protocol separating recalibration fitting from independent assessment remains to be specified using development data.
+- **Validation:** 1,527 images / 1,121 lesions. Used for current development evaluation and CNN early stopping. Current reports use threshold 0.5; future corrected development partitions will separate tuning and calibration, as documented in the [recalibration protocol](reports/experimental-design.md#agreed-future-recalibration-protocol). The current validation set has not been subdivided.
 - **Held-out test:** the official ISIC 2018 Task 3 test set, downloaded from the same Dataverse record. Its ground truth lists 1,512 images of 1,223 lesions; 1,511 images (1,222 lesions) are available, because `ISIC_0035068` was withdrawn from this distribution. The manifest audit found zero shared `image_id`/`lesion_id` with train or validation. This does not establish absence of visual duplicates or patient overlap. Final evaluation is planned once models, preprocessing, calibrators, and thresholds are frozen; held-out results will not be used to revise those choices. The reviewed training scripts currently evaluate validation only.
 - **Reference comparison:** reader and CNN data from Tschandl et al., *Nature Medicine* 26, 1229–1234 (2020), included in the same download. Used only for comparison, never for training.
 
@@ -51,11 +51,11 @@ The [data-branch split audit](https://github.com/EXSU-500-Team-2-Fall-2026/SLT/b
 
 **Midterm decision (2026-11-06):** retain the current split manifests, trained-model results, and feature tables for the midterm, disclose this limitation, and defer correction of the grouping rule and rerunning experiments until after the midterm submission. No corrected split or corrected performance is claimed.
 
-After submission, the team plans to verify the published duplicate relationships and group images using connected components of shared lesion IDs and confirmed near-duplicate links. It will retain seed 42 and approximately 15% of combined groups for validation, audit and freeze the corrected manifests, regenerate development features, and retrain/re-evaluate all three models. The original manifests and results will be preserved and identified by version. The corrected split will not be chosen by model performance.
+After submission, the team plans to verify the published duplicate relationships and group images using connected components of shared lesion IDs and confirmed near-duplicate links. It will retain seed 42 and start with approximately 85% of corrected groups for training, 7.5% for tuning/validation, and 7.5% for calibration, subject to class/group-count feasibility checks before freezing. It will audit and version the corrected manifests, regenerate development features, and retrain/re-evaluate all three models. The original manifests and results will be preserved and identified by version. The corrected split will not be chosen by model performance.
 
 The held-out cohort remains reserved for final assessment. These five pairs concern train/validation and do not by themselves require changing the held-out cohort. Any newly discovered development/test overlap will be handled using a documented rule before prediction-based evaluation. Recalibration and final testing will follow the corrected development workflow.
 
-See [experimental design](reports/experimental-design.md) for current methods and planned work. Audit code and generated tables are currently on `data/split-audit`; the pinned audit link above records the evidence without implying those additions have been merged.
+See [experimental design](reports/experimental-design.md) for current methods and planned work. Audit code and generated tables have been merged into `main`; the pinned audit link above preserves the original evidence.
 
 ## Getting the data
 
@@ -117,7 +117,7 @@ The CNN was trained from scratch because the original training environment could
 
 - After midterm submission, implement duplicate-aware grouping, version and freeze corrected development splits, regenerate features, and retrain/re-evaluate all three models; preserve original results as preliminary.
 - Preserve image and lesion IDs with predictions; implement lesion-level bootstrap CIs and paired model-difference estimates.
-- Specify and implement recalibration with independent assessment; do not evaluate improvement solely on calibrator-fitting cases.
+- Implement the [agreed future recalibration protocol](reports/experimental-design.md#agreed-future-recalibration-protocol): disjoint training/tuning/calibration groups, logistic recalibration per frozen model without calibration class balancing, and original-versus-recalibrated held-out comparisons. Primary comparison: change in Brier score, supported by reliability diagrams, slope/intercept, ECE, discrimination metrics, and paired lesion-group bootstrap CIs. Do not claim improvement from fitting cases alone or revise methods based on test scores. Action owners remain for team discussion.
 - Report diagnosis-specific sensitivity, particularly for melanoma.
 - Verify the held-out cohort and implement final evaluation for all models, including metadata compatibility and explicit missing-input/exclusion handling.
 - Prespecify any additional operating-point criterion using development data, and freeze thresholds before final testing.
