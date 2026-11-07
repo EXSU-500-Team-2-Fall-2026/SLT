@@ -1,6 +1,7 @@
 # Experimental Design
 
 ## Research question and clinical motivation
+**Clinical problem:** Distinguishing malignant/premalignant from benign skin lesions is challenging because they can share similar visual features. AI may support lesion assessment, but accurate classification does not always mean reliable, predicted probabilities.
 
 **Primary research question:** How effectively can patient metadata, handcrafted dermoscopic image features, and learned image representations distinguish malignant/premalignant from benign lesions in HAM10000, and how well calibrated are their probability estimates?
 
