@@ -17,8 +17,6 @@ The seven HAM10000 diagnostic categories are grouped as follows:
 | Actinic keratosis / intraepithelial carcinoma (`akiec`) | Dermatofibroma (`df`) |
 | | Vascular lesion (`vasc`) |
 
-“Higher-concern” and “lower-concern” may be used as shorthand for these defined groups. They do not represent independently measured clinical concern or referral requirements.
-
 This operational grouping supports a common binary comparison across models. It does not imply identical severity or management within either group. Diagnosis-specific sensitivity, particularly for melanoma, is planned to identify weaknesses that an aggregate positive-class result could conceal.
 
 ## Research questions
