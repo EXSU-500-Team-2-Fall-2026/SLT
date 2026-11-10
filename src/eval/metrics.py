@@ -152,6 +152,9 @@ def bootstrap_metrics_ci(
 
 
 def reliability_diagram(calibration: CalibrationMetrics, title: str, out_path) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")  # write the file without opening a window (needed on servers, tidier on macOS)
     import matplotlib.pyplot as plt
 
     bin_centers = (calibration.bin_edges[:-1] + calibration.bin_edges[1:]) / 2

@@ -3,15 +3,18 @@ task (see README.md). Uses only age, sex, and body site (localization) --
 no image data -- via a logistic regression on an impute+encode pipeline.
 Establishes the floor the image-based models (classical ML, CNN) must beat.
 
-Trains on data/splits/train.csv and reports on data/splits/val.csv only;
-the held-out test set is touched once, after all three models are built
-and compared.
+Trains on <splits-dir>/train.csv and reports on one development split
+(--eval-split, default val). The held-out test set is refused here: it is
+scored once, by the final evaluation, after everything is frozen.
 
 Usage:
+    # original split (midterm results)
+    python -m src.models.metadata_baseline
+
+    # duplicate-aware split: report on tune, save predictions for the calibrator
     python -m src.models.metadata_baseline \\
-        --splits-dir data/splits --raw-dir data/raw \\
-        --out models/metadata_baseline.joblib \\
-        --reports-dir reports/metadata_baseline
+        --splits-dir data/splits_v2 --eval-split tune --predict-splits tune calibration \\
+        --reports-dir reports/v2/metadata_baseline
 """
 import argparse
 import json
@@ -25,7 +28,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from src.eval.metrics import bootstrap_metrics_ci, calibration_metrics, discrimination_metrics, reliability_diagram
+from src.eval.metrics import reliability_diagram
+from src.eval.reporting import add_split_arguments, check_development_splits, evaluate, split_label, write_predictions
 
 NUMERIC_FEATURES = ["age"]
 CATEGORICAL_FEATURES = ["sex", "localization"]
@@ -70,58 +74,48 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=Path("models/metadata_baseline.joblib"))
     parser.add_argument("--reports-dir", type=Path, default=Path("reports/metadata_baseline"))
     parser.add_argument("--threshold", type=float, default=0.5)
+    add_split_arguments(parser)
     args = parser.parse_args()
+    check_development_splits(parser, args.eval_split, *args.predict_splits)
 
-    train_metadata = args.raw_dir / "HAM10000_metadata.tab"
-    train_df = load_split_with_metadata(args.splits_dir / "train.csv", train_metadata)
-    val_df = load_split_with_metadata(args.splits_dir / "val.csv", train_metadata)
+    metadata = args.raw_dir / "HAM10000_metadata.tab"
+    train_df = load_split_with_metadata(args.splits_dir / "train.csv", metadata)
+    eval_df = load_split_with_metadata(args.splits_dir / f"{args.eval_split}.csv", metadata)
 
     pipeline = build_pipeline()
     pipeline.fit(train_df[FEATURE_COLUMNS], train_df["label"])
 
-    val_prob = pipeline.predict_proba(val_df[FEATURE_COLUMNS])[:, 1]
-    disc = discrimination_metrics(val_df["label"], val_prob, threshold=args.threshold)
-    calib = calibration_metrics(val_df["label"], val_prob)
-    ci = bootstrap_metrics_ci(val_df["label"], val_prob, threshold=args.threshold)
+    eval_prob = pipeline.predict_proba(eval_df[FEATURE_COLUMNS])[:, 1]
+    sections, calib = evaluate(eval_df["label"], eval_prob, threshold=args.threshold, n_boot=args.n_boot)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipeline, args.out)
 
     args.reports_dir.mkdir(parents=True, exist_ok=True)
     reliability_diagram(
-        calib, "Metadata baseline – validation", args.reports_dir / "reliability_diagram.png"
+        calib, f"Metadata baseline – {split_label(args.eval_split)}", args.reports_dir / "reliability_diagram.png"
     )
+
+    for split in args.predict_splits:
+        split_df = eval_df if split == args.eval_split else load_split_with_metadata(
+            args.splits_dir / f"{split}.csv", metadata
+        )
+        split_prob = pipeline.predict_proba(split_df[FEATURE_COLUMNS])[:, 1]
+        write_predictions(split_df, split_prob, split, args.reports_dir / f"predictions_{split}.csv")
 
     report = {
         "model": "metadata_baseline",
         "features": FEATURE_COLUMNS,
         "n_train": len(train_df),
-        "n_val": len(val_df),
-        "discrimination": {
-            "auroc": disc.auroc,
-            "auroc_ci95": ci["auroc_ci"],
-            "auprc": disc.auprc,
-            "auprc_ci95": ci["auprc_ci"],
-            "sensitivity": disc.sensitivity,
-            "sensitivity_ci95": ci["sensitivity_ci"],
-            "specificity": disc.specificity,
-            "specificity_ci95": ci["specificity_ci"],
-            "threshold": disc.threshold,
-        },
-        "calibration": {
-            "brier_score": calib.brier_score,
-            "brier_score_ci95": ci["brier_score_ci"],
-            "ece": calib.ece,
-            "calibration_slope": calib.calibration_slope,
-            "calibration_intercept": calib.calibration_intercept,
-        },
-        "bootstrap": {"n_boot": ci["n_boot"], "ci_level": ci["ci_level"]},
+        "n_val": len(eval_df),
+        "splits_dir": args.splits_dir.as_posix(),
+        "eval_split": args.eval_split,
+        **sections,
     }
     with open(args.reports_dir / "metrics.json", "w") as f:
         json.dump(report, f, indent=2)
 
     print(json.dumps(report, indent=2))
-
 
 if __name__ == "__main__":
     main()
