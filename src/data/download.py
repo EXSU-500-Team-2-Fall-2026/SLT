@@ -5,7 +5,8 @@ study comparison files) from the Harvard Dataverse record cited in README.md:
 
 The dataset must not be committed to this repository (see Section 5.4 of
 the course specification), so this script is how anyone reproduces the
-download instead.
+download instead. After downloading, run src/data/prepare_raw.py to
+arrange the files into the layout the code expects.
 
 Usage:
     python -m src.data.download --list              # see what's in the record
@@ -13,25 +14,29 @@ Usage:
     python -m src.data.download --out data/raw --all # download everything in the record
 """
 import argparse
-import json
 import re
 import sys
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import Request, urlopen
+
+import requests
 
 DOI = "doi:10.7910/DVN/DBW86T"
 API_BASE = "https://dataverse.harvard.edu/api"
 
-# Harvard Dataverse returns 403 Forbidden to requests with Python's default
-# urllib User-Agent (likely basic bot filtering). A normal browser/CLI UA
-# string is enough to get through.
+# Harvard Dataverse returns 403 Forbidden to requests with a default Python
+# User-Agent (likely basic bot filtering). A normal browser/CLI UA string
+# is enough to get through.
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) ham10000-download-script/1.0"
+HEADERS = {"User-Agent": USER_AGENT}
 
-# Files are matched by (lowercased) name against these patterns. The exact
-# file names on the Dataverse record were not re-verified when this script
-# was written (no network access at the time) -- run with --list first and
-# adjust this list if nothing matches.
+# The requests library is used rather than urllib because it checks HTTPS
+# certificates against its own bundled list (certifi). urllib relies on the
+# Python installation's certificate store, which is empty on python.org
+# builds for macOS until "Install Certificates.command" has been run, and
+# the download then fails with CERTIFICATE_VERIFY_FAILED.
+
+# Files are matched by (lowercased) name against these patterns. Run with
+# --list to see the record's current file names.
 DEFAULT_KEEP_PATTERNS = [
     r"ham10000.*images",
     r"ham10000.*metadata",
@@ -42,11 +47,10 @@ DEFAULT_KEEP_PATTERNS = [
 
 
 def list_files() -> list[dict]:
-    url = f"{API_BASE}/datasets/:persistentId/?persistentId={DOI}"
-    req = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(req, timeout=30) as resp:
-        payload = json.load(resp)
-    files = payload["data"]["latestVersion"]["files"]
+    url = f"{API_BASE}/datasets/:persistentId/"
+    resp = requests.get(url, params={"persistentId": DOI}, headers=HEADERS, timeout=30)
+    resp.raise_for_status()
+    files = resp.json()["data"]["latestVersion"]["files"]
     return [
         {
             "id": f["dataFile"]["id"],
@@ -63,15 +67,26 @@ def matches_any(name: str, patterns: list[str]) -> bool:
 
 
 def download_file(file_id: int, dest_path: Path) -> None:
+    """Download to '<name>.part' and rename when complete, so an interrupted
+    download is never mistaken for a finished file on the next run."""
     url = f"{API_BASE}/access/datafile/{file_id}"
     dest_path.parent.mkdir(parents=True, exist_ok=True)
-    req = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(req, timeout=300) as resp, open(dest_path, "wb") as out:
-        while True:
-            chunk = resp.read(1 << 20)
-            if not chunk:
-                break
-            out.write(chunk)
+    part_path = dest_path.with_name(dest_path.name + ".part")
+    with requests.get(url, headers=HEADERS, stream=True, timeout=300) as resp:
+        resp.raise_for_status()
+        with open(part_path, "wb") as out:
+            for chunk in resp.iter_content(chunk_size=1 << 20):
+                out.write(chunk)
+    part_path.replace(dest_path)
+
+
+def _unreachable(exc: Exception, out: Path) -> str:
+    return (
+        f"Could not get the files from the Harvard Dataverse API ({exc}).\n"
+        "Check your network access to dataverse.harvard.edu, or download the "
+        "files in a browser from https://doi.org/10.7910/DVN/DBW86T and then run\n"
+        f"    python -m src.data.prepare_raw --source <download folder> --out {out}"
+    )
 
 
 def main() -> None:
@@ -87,13 +102,8 @@ def main() -> None:
 
     try:
         files = list_files()
-    except URLError as exc:
-        sys.exit(
-            f"Could not reach the Harvard Dataverse API ({exc}).\n"
-            "Check your network access to dataverse.harvard.edu, or download "
-            "the files manually from https://doi.org/10.7910/DVN/DBW86T and "
-            f"place them under {args.out}."
-        )
+    except requests.RequestException as exc:
+        sys.exit(_unreachable(exc, args.out))
 
     print(f"{len(files)} files in dataset {DOI}:")
     for f in files:
@@ -118,9 +128,12 @@ def main() -> None:
             print(f"skip (already exists): {dest}")
             continue
         print(f"downloading {f['name']} -> {dest}")
-        download_file(f["id"], dest)
+        try:
+            download_file(f["id"], dest)
+        except requests.RequestException as exc:
+            sys.exit(_unreachable(exc, args.out))
 
-    print(f"\nDone. Unzip any .zip archives under {args.out} before running make_splits.py.")
+    print(f"\nDone. Next: python -m src.data.prepare_raw --out {args.out}")
 
 
 if __name__ == "__main__":
