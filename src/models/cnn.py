@@ -1,9 +1,9 @@
 """Model 3 of 3: a small convolutional network trained from scratch on raw
-HAM10000 images (see README.md). No pretrained backbone -- this
-environment's network policy blocks both download.pytorch.org and
-huggingface.co, so ImageNet weights aren't reachable here. A compact CNN
-with data augmentation is a reasonable, literature-precedented fallback at
-this dataset size (~8.5k training images).
+HAM10000 images (see README.md). No pretrained backbone: pretrained
+ImageNet weights could not be downloaded in the environment where this
+model was first trained, so a compact CNN with data augmentation was used
+instead (~8.5k training images). Transfer learning is a possible later
+comparison.
 
 Trains on data/splits/train.csv, reports on data/splits/val.csv only; the
 held-out test set is touched once, after all three models are built and

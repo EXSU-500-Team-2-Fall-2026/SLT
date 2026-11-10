@@ -20,7 +20,7 @@ These comparisons change both information source and modelling approach; they do
 
 - **RQ1 — Discrimination:** how well does each model distinguish the two diagnostic groups? Current measures are AUROC, AUPRC (implemented as average precision), and sensitivity/specificity at threshold 0.5. This threshold is a reporting convention, not a clinically validated referral threshold.
 - **RQ2 — Calibration:** how closely do predicted probabilities correspond to observed positive-group frequencies? Current outputs are reliability diagrams, Brier score, ECE using 10 equal-width probability bins, and calibration slope/intercept. Brier score measures overall probability prediction error, not calibration alone; ECE is supplementary and depends on binning.
-- **Planned extension:** assess whether post-hoc recalibration improves probability reliability on cases independent of those used to fit the calibrator. Logistic recalibration has been selected for each model, using a separate development calibration subset and independent held-out assessment. Implementation and numerical settings remain future work; see the [agreed protocol](reports/experimental-design.md#agreed-future-recalibration-protocol).
+- **Planned extension:** assess whether post-hoc recalibration improves probability reliability on cases independent of those used to fit the calibrator. Logistic recalibration has been selected for each model, using a separate development calibration subset and independent held-out assessment. The mapping itself is implemented in `src/eval/recalibration.py` (an unpenalised logistic fit on logit-transformed probabilities, clipped at 1e-6). Fitting it on a calibration subset and assessing it on held-out cases remain future work; see the [agreed protocol](reports/experimental-design.md#future-recalibration-protocol).
 
 The comparison is exploratory: greater model complexity is not assumed to improve either discrimination or calibration.
 
@@ -37,7 +37,7 @@ The comparison is exploratory: greater model complexity is not assumed to improv
 **Splits:** the repository records these as declared before modelling. HAM10000 train/validation partitions use `GroupShuffleSplit` grouped by `lesion_id`, with seed 42 and 15% of lesion groups assigned to validation; diagnosis is not explicitly stratified. The separate held-out distribution is not part of an 85/15/15 division. See `src/data/make_splits.py` and committed manifests in `data/splits/`.
 
 - **Train:** 8,488 images / 6,349 lesions.
-- **Validation:** 1,527 images / 1,121 lesions. Used for current development evaluation and CNN early stopping. Current reports use threshold 0.5; future corrected development partitions will separate tuning and calibration, as documented in the [recalibration protocol](reports/experimental-design.md#agreed-future-recalibration-protocol). The current validation set has not been subdivided.
+- **Validation:** 1,527 images / 1,121 lesions. Used for current development evaluation and CNN early stopping. Current reports use threshold 0.5; future corrected development partitions will separate tuning and calibration, as documented in the [recalibration protocol](reports/experimental-design.md#future-recalibration-protocol). The current validation set has not been subdivided.
 - **Held-out test:** the official ISIC 2018 Task 3 test set, downloaded from the same Dataverse record. Its ground truth lists 1,512 images of 1,223 lesions; 1,511 images (1,222 lesions) are available, because `ISIC_0035068` was withdrawn from this distribution. The manifest audit found zero shared `image_id`/`lesion_id` with train or validation. This does not establish absence of visual duplicates or patient overlap. Final evaluation is planned once models, preprocessing, calibrators, and thresholds are frozen; held-out results will not be used to revise those choices. The reviewed training scripts currently evaluate validation only.
 - **Reference comparison:** reader and CNN data from Tschandl et al., *Nature Medicine* 26, 1229–1234 (2020), included in the same download. Used only for comparison, never for training.
 
@@ -119,6 +119,15 @@ python -m pytest tests/ -q
 
 Each model script trains on `data/splits/train.csv`, reports on `data/splits/val.csv` only (the test set is touched once, at the end, across all models), and writes its metrics/reliability diagram to `reports/<model>/`.
 
+## Scoring a single image
+
+```bash
+python -m src.predict path/to/image.jpg --age 62 --sex male --localization back
+python -m src.predict --image-id ISIC_0029176   # a HAM10000 image: also prints its true diagnosis
+```
+
+`src/predict.py` scores one image with whichever trained models are present in `models/`, using the same preprocessing as the training scripts. For each model it prints the raw probability of the malignant/premalignant group and, if `models/<model>_calibrator.json` exists, the recalibrated probability. Models whose files are missing are skipped. Age, sex and body site are optional and are used only by the metadata baseline. Images from the held-out test set are refused when looked up by ID, because that set is evaluated once, at the end. This is the function an interface would call; it is a research prototype and not for clinical use.
+
 ## Results
 
 **Preliminary validation-set performance on the original split with the known cross-split near-duplicate limitation**, threshold 0.5. No performance correction or retraining has been carried out for this finding. The listed 95% percentile bootstrap CIs use 1,000 image-level resamples. They do not account for dependence between images of the same lesion, repeated training, or development-set model selection. ECE and calibration slope/intercept do not currently have CIs. AUPRC is implemented as average precision.
@@ -139,7 +148,7 @@ The CNN was trained from scratch because the original training environment could
 
 - After midterm submission, implement duplicate-aware grouping, version and freeze corrected development splits, regenerate features, and retrain/re-evaluate all three models; preserve original results as preliminary.
 - Preserve image and lesion IDs with predictions; implement lesion-level bootstrap CIs and paired model-difference estimates.
-- Implement the [agreed future recalibration protocol](reports/experimental-design.md#agreed-future-recalibration-protocol): disjoint training/tuning/calibration groups, logistic recalibration per frozen model without calibration class balancing, and original-versus-recalibrated held-out comparisons. Primary comparison: change in Brier score, supported by reliability diagrams, slope/intercept, ECE, discrimination metrics, and paired lesion-group bootstrap CIs. Do not claim improvement from fitting cases alone or revise methods based on test scores. Action owners remain for team discussion.
+- Implement the [agreed future recalibration protocol](reports/experimental-design.md#future-recalibration-protocol): disjoint training/tuning/calibration groups, logistic recalibration per frozen model without calibration class balancing, and original-versus-recalibrated held-out comparisons. Primary comparison: change in Brier score, supported by reliability diagrams, slope/intercept, ECE, discrimination metrics, and paired lesion-group bootstrap CIs. Do not claim improvement from fitting cases alone or revise methods based on test scores. Action owners remain for team discussion.
 - Report diagnosis-specific sensitivity, particularly for melanoma.
 - Verify the held-out cohort and implement final evaluation for all models, including metadata compatibility and explicit missing-input/exclusion handling.
 - Prespecify any additional operating-point criterion using development data, and freeze thresholds before final testing.
@@ -152,7 +161,7 @@ These are planned activities, not completed methods or results.
 |---|---|
 | Data lead | Giuliana Curcio |
 | Modelling lead | Abdul Aziz Mourad |
-| Interface lead | Sophie Lee |
+| Interface lead | Sophia Lee |
 | Writing lead | Ariel Subekti |
 
 See [`CONTRIBUTIONS.md`](CONTRIBUTIONS.md) for the CRediT contribution statement, and [`MODEL_CARD.md`](MODEL_CARD.md) for the current best model's intended use, data, metrics, and limitations.
