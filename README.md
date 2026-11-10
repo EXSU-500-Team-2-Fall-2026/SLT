@@ -57,15 +57,37 @@ The held-out cohort remains reserved for final assessment. These five pairs conc
 
 See [experimental design](reports/experimental-design.md) for current methods and planned work. Audit code and generated tables have been merged into `main`; the pinned audit link above preserves the original evidence.
 
-## Getting the data
+## Setup
+
+The code was developed and tested with **Python 3.13**. The pinned package versions in `requirements.txt` do not install on Python 3.9, the version bundled with macOS, so install a current Python first if needed.
 
 ```bash
-python -m src.data.download --out data/raw   # downloads ~3.1 GB from Harvard Dataverse
-# then unzip the .zip files it downloads, e.g.:
-cd data/raw && for f in *.zip; do unzip -o "$f"; done
+python3.13 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python -m pytest -q                # the tests need no data
 ```
 
-This produces `data/raw/HAM10000_images/` (10,015 `.jpg`), `data/raw/HAM10000_segmentations_lesion_tschandl/` (10,015 masks), `data/raw/ISIC2018_Task3_Test_Images/` (1,511 `.jpg`; the test ground-truth file lists one additional `image_id`, `ISIC_0035068`, that was withdrawn from this Dataverse distribution), and the `.tab` metadata/ground-truth files. `data/splits/*.csv` are already committed, so this step is only needed to retrain a model or rebuild the splits/features from scratch.
+## Getting the data
+
+**1. Download** the files of the Dataverse record (about 3.1 GB), in either way:
+
+```bash
+python -m src.data.download --out data/raw
+```
+
+or open [doi:10.7910/DVN/DBW86T](https://doi.org/10.7910/DVN/DBW86T) in a browser, download all files, and note the folder they land in (for example `~/Downloads/dataverse_files`).
+
+**2. Arrange** them into the layout the code expects:
+
+```bash
+python -m src.data.prepare_raw                                        # after the download script
+python -m src.data.prepare_raw --source ~/Downloads/dataverse_files   # after a browser download
+```
+
+This step is needed because the record does not unpack into that layout by itself: the training images come as two archives (`HAM10000_images_part_1.zip` with 5,000 images and `HAM10000_images_part_2.zip` with 5,015) that have no inner folder, two archives contain macOS `__MACOSX` leftovers, and the metadata tables are named differently depending on how they were downloaded. `prepare_raw` works whether the archives are still zipped or already extracted. It never changes the download folder, links already-extracted files instead of copying them (use `--copy` to copy; if you link, keep the download folder where it is), and checks the file counts at the end.
+
+The result is `data/raw/HAM10000_images/` (10,015 `.jpg`), `data/raw/HAM10000_segmentations_lesion_tschandl/` (10,015 masks), `data/raw/ISIC2018_Task3_Test_Images/` (1,511 `.jpg`; the test ground-truth file lists one additional `image_id`, `ISIC_0035068`, that was withdrawn from this Dataverse distribution), `data/raw/HAM10000_metadata.tab` and `data/raw/ISIC2018_Task3_Test_GroundTruth.tab`. `data/splits/*.csv` are already committed, so this step is only needed to retrain a model or rebuild the splits/features from scratch.
 
 ## Checking the splits and describing the data
 
@@ -80,9 +102,9 @@ The saved [split audit](reports/dataset/split_audit.md) and dataset tables were 
 
 ## Reproducing the results
 
-```bash
-pip install -r requirements.txt
+With the environment from [Setup](#setup) active and the data in `data/raw`:
 
+```bash
 # only needed if you don't already have data/features/{train,val}.csv committed:
 python -m src.features.build_feature_table --splits train val
 
