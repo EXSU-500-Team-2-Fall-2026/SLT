@@ -11,7 +11,7 @@ commit history is part of the assessment).
 |---|---|---|
 | Giuliana Curcio | Data lead | Data curation; Software (dataset download script, lesion-level split builder) |
 | Abdul Aziz Mourad | Modelling lead | Methodology; Software (baseline and classical-ML models, shared evaluation harness); Formal analysis; Validation |
-| Sophie Lee | Interface lead | *Pending — interface not yet built* |
+| Sophia Lee | Interface lead | *Pending — interface not yet built* |
 | Ariel Subekti | Writing lead | *Pending — manuscript not yet started* |
 
 Every team member is expected to also contribute to the manuscript and to
