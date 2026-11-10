@@ -5,15 +5,24 @@ model was first trained, so a compact CNN with data augmentation was used
 instead (~8.5k training images). Transfer learning is a possible later
 comparison.
 
-Trains on data/splits/train.csv, reports on data/splits/val.csv only; the
-held-out test set is touched once, after all three models are built and
-compared.
+Trains on <splits-dir>/train.csv and uses one development split
+(--eval-split, default val) both to choose the best epoch and to report
+on. The held-out test set is refused here: it is scored once, by the
+final evaluation, after everything is frozen.
+
+The script uses a GPU when one is available (NVIDIA CUDA, or Apple
+silicon through MPS) and the CPU otherwise; --device overrides this. The
+settings of every run are written to metrics.json. Results are close but
+not bit-identical across devices and library versions.
 
 Usage:
+    # original split (midterm results)
+    python -m src.models.cnn
+
+    # duplicate-aware split: select and report on tune, save predictions for the calibrator
     python -m src.models.cnn \\
-        --splits-dir data/splits --raw-dir data/raw \\
-        --out models/cnn.pt --reports-dir reports/cnn \\
-        --epochs 20 --batch-size 64 --image-size 96
+        --splits-dir data/splits_v2 --eval-split tune --predict-splits tune calibration \\
+        --reports-dir reports/v2/cnn
 """
 import argparse
 import json
@@ -28,7 +37,8 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
-from src.eval.metrics import bootstrap_metrics_ci, calibration_metrics, discrimination_metrics, reliability_diagram
+from src.eval.metrics import discrimination_metrics, reliability_diagram
+from src.eval.reporting import add_split_arguments, check_development_splits, evaluate, split_label, write_predictions
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
@@ -107,6 +117,18 @@ class SimpleCNN(nn.Module):
         return self.head(x).squeeze(1)
 
 
+def pick_device(name: str = "auto") -> torch.device:
+    """CUDA if available, else Apple-silicon MPS, else CPU; or the named device."""
+    if name != "auto":
+        return torch.device(name)
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    mps = getattr(torch.backends, "mps", None)
+    if mps is not None and mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
 @torch.no_grad()
 def predict_probs(model, loader, device) -> tuple[np.ndarray, np.ndarray]:
     model.eval()
@@ -122,7 +144,11 @@ def train_model(
     model, train_loader, val_loader, device, epochs: int, lr: float, patience: int, pos_weight: float
 ):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(pos_weight, device=device))
+    # float32 throughout: Apple MPS has no float64, and the default DataLoader
+    # collation turns Python float labels into float64 tensors.
+    criterion = nn.BCEWithLogitsLoss(
+        pos_weight=torch.tensor(float(pos_weight), dtype=torch.float32, device=device)
+    )
 
     best_auroc = -1.0
     best_state = None
@@ -134,7 +160,7 @@ def train_model(
         epoch_start = time.time()
         running_loss = 0.0
         for images, labels in train_loader:
-            images, labels = images.to(device), labels.to(device)
+            images, labels = images.to(device), labels.to(dtype=torch.float32).to(device)
             optimizer.zero_grad()
             logits = model(images)
             loss = criterion(logits, labels)
@@ -181,76 +207,88 @@ def main() -> None:
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda", "mps"])
+    add_split_arguments(parser)
     args = parser.parse_args()
+    check_development_splits(parser, args.eval_split, *args.predict_splits)
 
     torch.manual_seed(args.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = pick_device(args.device)
+    print(f"device: {device}")
 
     image_dir = args.raw_dir / "HAM10000_images"
+    eval_transform = get_transforms(args.image_size, train=False)
     train_ds = HAM10000ImageDataset(
         args.splits_dir / "train.csv", image_dir, get_transforms(args.image_size, train=True)
     )
-    val_ds = HAM10000ImageDataset(
-        args.splits_dir / "val.csv", image_dir, get_transforms(args.image_size, train=False)
-    )
+    eval_ds = HAM10000ImageDataset(args.splits_dir / f"{args.eval_split}.csv", image_dir, eval_transform)
+    if len(train_ds) == 0 or len(eval_ds) == 0:
+        raise SystemExit(f"No images found in {image_dir}. See 'Getting the data' in README.md.")
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+    eval_loader = DataLoader(eval_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    n_pos = train_ds.df["label"].sum()
+    n_pos = int(train_ds.df["label"].sum())
     n_neg = len(train_ds.df) - n_pos
     pos_weight = n_neg / n_pos
 
     model = SimpleCNN().to(device)
-    model, history, best_val_auroc = train_model(
-        model, train_loader, val_loader, device, args.epochs, args.lr, args.patience, pos_weight
+    start_time = time.time()
+    model, history, best_eval_auroc = train_model(
+        model, train_loader, eval_loader, device, args.epochs, args.lr, args.patience, pos_weight
     )
+    training_seconds = time.time() - start_time
 
-    val_labels, val_probs = predict_probs(model, val_loader, device)
-    disc = discrimination_metrics(val_labels, val_probs, threshold=args.threshold)
-    calib = calibration_metrics(val_labels, val_probs)
-    ci = bootstrap_metrics_ci(val_labels, val_probs, threshold=args.threshold)
+    eval_labels, eval_probs = predict_probs(model, eval_loader, device)
+    sections, calib = evaluate(eval_labels, eval_probs, threshold=args.threshold, n_boot=args.n_boot)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(model.state_dict(), args.out)
+    torch.save({k: v.cpu() for k, v in model.state_dict().items()}, args.out)
 
     args.reports_dir.mkdir(parents=True, exist_ok=True)
     reliability_diagram(
-        calib, "CNN (trained from scratch) – validation", args.reports_dir / "reliability_diagram.png"
+        calib, f"CNN (trained from scratch) – {split_label(args.eval_split)}",
+        args.reports_dir / "reliability_diagram.png",
     )
+
+    for split in args.predict_splits:
+        if split == args.eval_split:
+            split_ds, split_probs = eval_ds, eval_probs
+        else:
+            split_ds = HAM10000ImageDataset(args.splits_dir / f"{split}.csv", image_dir, eval_transform)
+            split_loader = DataLoader(
+                split_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers
+            )
+            _, split_probs = predict_probs(model, split_loader, device)
+        write_predictions(split_ds.df, split_probs, split, args.reports_dir / f"predictions_{split}.csv")
 
     report = {
         "model": "cnn",
         "architecture": "SimpleCNN (4 conv blocks, trained from scratch, no pretrained weights)",
         "image_size": args.image_size,
         "n_train": len(train_ds),
-        "n_val": len(val_ds),
+        "n_val": len(eval_ds),
+        "splits_dir": args.splits_dir.as_posix(),
+        "eval_split": args.eval_split,
+        "settings": {
+            "batch_size": args.batch_size,
+            "learning_rate": args.lr,
+            "max_epochs": args.epochs,
+            "patience": args.patience,
+            "seed": args.seed,
+            "pos_weight": float(pos_weight),
+            "checkpoint_selection": f"highest AUROC on the {args.eval_split} split",
+            "device": str(device),
+            "torch_version": torch.__version__,
+            "training_seconds": round(training_seconds, 1),
+        },
         "epochs_run": len(history),
         "history": history,
-        "discrimination": {
-            "auroc": disc.auroc,
-            "auroc_ci95": ci["auroc_ci"],
-            "auprc": disc.auprc,
-            "auprc_ci95": ci["auprc_ci"],
-            "sensitivity": disc.sensitivity,
-            "sensitivity_ci95": ci["sensitivity_ci"],
-            "specificity": disc.specificity,
-            "specificity_ci95": ci["specificity_ci"],
-            "threshold": disc.threshold,
-        },
-        "calibration": {
-            "brier_score": calib.brier_score,
-            "brier_score_ci95": ci["brier_score_ci"],
-            "ece": calib.ece,
-            "calibration_slope": calib.calibration_slope,
-            "calibration_intercept": calib.calibration_intercept,
-        },
-        "bootstrap": {"n_boot": ci["n_boot"], "ci_level": ci["ci_level"]},
+        **sections,
     }
     with open(args.reports_dir / "metrics.json", "w") as f:
         json.dump(report, f, indent=2)
 
     print(json.dumps({k: v for k, v in report.items() if k != "history"}, indent=2))
-
 
 if __name__ == "__main__":
     main()
