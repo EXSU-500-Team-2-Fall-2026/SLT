@@ -1,0 +1,5 @@
+split,images,lesions,groups,positive_images,positive_pct
+train,8519,6350,6334,1685,19.78
+tune,752,560,559,136,18.09
+calibration,744,560,559,133,17.88
+test,1512,1223,1223,307,20.3
