@@ -1,0 +1,15 @@
+{
+  "method": "logistic recalibration: sigmoid(intercept + slope * logit(p))",
+  "intercept": -1.2897369468715068,
+  "slope": 0.8648466737377238,
+  "eps": 1e-06,
+  "solver": "lbfgs",
+  "regularization": "none (C=inf)",
+  "class_weight": "none",
+  "converged": true,
+  "n_calibration": 744,
+  "n_positive": 133,
+  "model": "classical_ml",
+  "fitted_on": "calibration",
+  "predictions_file": "reports/v2/classical_ml/predictions_calibration.csv"
+}

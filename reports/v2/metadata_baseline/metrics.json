@@ -1,0 +1,49 @@
+{
+  "model": "metadata_baseline",
+  "features": [
+    "age",
+    "sex",
+    "localization"
+  ],
+  "n_train": 8519,
+  "n_val": 752,
+  "splits_dir": "data/splits_v2",
+  "eval_split": "tune",
+  "discrimination": {
+    "auroc": 0.8034162528647822,
+    "auroc_ci95": [
+      0.7646286854135853,
+      0.8410810444922275
+    ],
+    "auprc": 0.45487191099859703,
+    "auprc_ci95": [
+      0.37732679503204775,
+      0.5420784129018534
+    ],
+    "sensitivity": 0.7867647058823529,
+    "sensitivity_ci95": [
+      0.7162861997635934,
+      0.8543145412350711
+    ],
+    "specificity": 0.698051948051948,
+    "specificity_ci95": [
+      0.6639348632910457,
+      0.7339915008291873
+    ],
+    "threshold": 0.5
+  },
+  "calibration": {
+    "brier_score": 0.18999339995067369,
+    "brier_score_ci95": [
+      0.17595377842406373,
+      0.20403572636056916
+    ],
+    "ece": 0.2438615085863831,
+    "calibration_slope": 1.0182126147969588,
+    "calibration_intercept": -1.5603374441603068
+  },
+  "bootstrap": {
+    "n_boot": 1000,
+    "ci_level": 0.95
+  }
+}

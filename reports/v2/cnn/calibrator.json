@@ -1,0 +1,15 @@
+{
+  "method": "logistic recalibration: sigmoid(intercept + slope * logit(p))",
+  "intercept": -1.408462981703192,
+  "slope": 0.9763607158935798,
+  "eps": 1e-06,
+  "solver": "lbfgs",
+  "regularization": "none (C=inf)",
+  "class_weight": "none",
+  "converged": true,
+  "n_calibration": 744,
+  "n_positive": 133,
+  "model": "cnn",
+  "fitted_on": "calibration",
+  "predictions_file": "reports/v2/cnn/predictions_calibration.csv"
+}
