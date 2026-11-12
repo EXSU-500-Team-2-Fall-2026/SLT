@@ -20,7 +20,7 @@ These comparisons change both information source and modelling approach; they do
 
 - **RQ1 — Discrimination:** how well does each model distinguish the two diagnostic groups? Current measures are AUROC, AUPRC (implemented as average precision), and sensitivity/specificity at threshold 0.5. This threshold is a reporting convention, not a clinically validated referral threshold.
 - **RQ2 — Calibration:** how closely do predicted probabilities correspond to observed positive-group frequencies? Current outputs are reliability diagrams, Brier score, ECE using 10 equal-width probability bins, and calibration slope/intercept. Brier score measures overall probability prediction error, not calibration alone; ECE is supplementary and depends on binning.
-- **Planned extension:** assess whether post-hoc recalibration improves probability reliability on cases independent of those used to fit the calibrator. Logistic recalibration has been selected for each model, using a separate development calibration subset and independent held-out assessment. The mapping itself is implemented in `src/eval/recalibration.py` (an unpenalised logistic fit on logit-transformed probabilities, clipped at 1e-6). Fitting it on a calibration subset and assessing it on held-out cases remain future work; see the [agreed protocol](reports/experimental-design.md#future-recalibration-protocol).
+- **Planned extension:** assess whether post-hoc recalibration improves probability reliability on cases independent of those used to fit the calibrator. Logistic recalibration is used for each model (`src/eval/recalibration.py`: an unpenalised logistic fit on logit-transformed probabilities, clipped at 1e-6). One mapping per model has been fitted on the calibration subset of the duplicate-aware split (`src/eval/fit_calibrators.py`; coefficients in `reports/v2/<model>/calibrator.json`). Whether these mappings improve calibration has not been assessed: that comparison is made once, on held-out cases, and remains future work; see the [agreed protocol](reports/experimental-design.md#future-recalibration-protocol).
 
 The comparison is exploratory: greater model complexity is not assumed to improve either discrimination or calibration.
 
@@ -34,28 +34,35 @@ The comparison is exploratory: greater model complexity is not assumed to improv
 - **Licence:** CC BY-NC 4.0 (non-commercial use)
 - **Citation:** Tschandl P, Rosendahl C, Kittler H. The HAM10000 dataset, a large collection of multi-source dermatoscopic images of common pigmented skin lesions. *Scientific Data* 5, 180161 (2018).
 
-**Splits:** the repository records these as declared before modelling. HAM10000 train/validation partitions use `GroupShuffleSplit` grouped by `lesion_id`, with seed 42 and 15% of lesion groups assigned to validation; diagnosis is not explicitly stratified. The separate held-out distribution is not part of an 85/15/15 division. See `src/data/make_splits.py` and committed manifests in `data/splits/`.
+**Splits:** two versions of the HAM10000 development split are committed. Both use `GroupShuffleSplit` with seed 42 and no explicit stratification by diagnosis, and both were fixed without reference to model performance.
 
-- **Train:** 8,488 images / 6,349 lesions.
-- **Validation:** 1,527 images / 1,121 lesions. Used for current development evaluation and CNN early stopping. Current reports use threshold 0.5; future corrected development partitions will separate tuning and calibration, as documented in the [recalibration protocol](reports/experimental-design.md#future-recalibration-protocol). The current validation set has not been subdivided.
-- **Held-out test:** the official ISIC 2018 Task 3 test set, downloaded from the same Dataverse record. Its ground truth lists 1,512 images of 1,223 lesions; 1,511 images (1,222 lesions) are available, because `ISIC_0035068` was withdrawn from this distribution. The manifest audit found zero shared `image_id`/`lesion_id` with train or validation. This does not establish absence of visual duplicates or patient overlap. Final evaluation is planned once models, preprocessing, calibrators, and thresholds are frozen; held-out results will not be used to revise those choices. The reviewed training scripts currently evaluate validation only.
+*Current, duplicate-aware split* (`data/splits_v2/`, `src/data/make_splits_v2.py`). Images are grouped by connected components of shared `lesion_id` and the 18 known near-duplicate image pairs, which links the 7,470 lesions into 7,452 groups. Whole groups are allocated 85% / 7.5% / 7.5%. None of the 18 pairs crosses subsets. The data lead inspected all 18 pairs visually before the split was frozen (pull request #5).
+
+- **Train:** 8,519 images / 6,350 lesions (19.78% malignant/premalignant). Model fitting.
+- **Tune:** 752 images / 560 lesions (18.09%). CNN checkpoint selection and development reporting.
+- **Calibration:** 744 images / 560 lesions (17.88%). Fitting the recalibration mappings only; not used for model fitting or selection.
+
+*Original split* (`data/splits/`, `src/data/make_splits.py`). Grouped by `lesion_id` only, with 15% of lesion groups assigned to validation: 8,488 images / 6,349 lesions for training and 1,527 images / 1,121 lesions for validation. Five of the 18 near-duplicate pairs cross its train/validation boundary. It is retained unchanged as the basis of the preliminary results below.
+
+- **Held-out test:** the official ISIC 2018 Task 3 test set, downloaded from the same Dataverse record. Its ground truth lists 1,512 images of 1,223 lesions; 1,511 images (1,222 lesions) are available, because `ISIC_0035068` was withdrawn from this distribution. The manifest audit found zero shared `image_id`/`lesion_id` with the development images. This does not establish absence of visual duplicates or patient overlap. Final evaluation is planned once models, preprocessing, calibrators, and thresholds are frozen; held-out results will not be used to revise those choices. The training and calibrator-fitting scripts refuse the held-out split, and it has not been used.
+- **Reference comparison:** reader and CNN data from Tschandl et al., *Nature Medicine* 26, 1229–1234 (2020), included in the same download. Used only for comparison, never for training.
 - **Reference comparison:** reader and CNN data from Tschandl et al., *Nature Medicine* 26, 1229–1234 (2020), included in the same download. Used only for comparison, never for training.
 
 Patient-level independence cannot be established from lesion identifiers alone. Before final evaluation, the team will verify held-out provenance and its relationship to HAM10000, duplicate images where feasible, label compatibility, metadata availability for the baseline, preprocessing consistency, exclusions, and a common eligible cohort for paired comparisons.
 
 The data are **not** committed to this repository (see `.gitignore`).
 
-## Known duplicate limitation and deferred correction
+## Known duplicate limitation and its correction
 
-The [data-branch split audit](https://github.com/EXSU-500-Team-2-Fall-2026/SLT/blob/efadcbabcc96c43b1a30512c3c00e0504bfbaabf/reports/dataset/split_audit.md) identifies 5 of 18 known near-duplicate image pairs crossing the current training/validation boundary despite having different lesion IDs. Zero shared image IDs or lesion IDs therefore does not establish independence of image content. These pairs provide a potential information-leakage route; the magnitude and direction of their effect on individual metrics have not been measured. Existing validation results are preliminary and potentially optimistic.
+The [data-branch split audit](https://github.com/EXSU-500-Team-2-Fall-2026/SLT/blob/efadcbabcc96c43b1a30512c3c00e0504bfbaabf/reports/dataset/split_audit.md) identified 5 of 18 known near-duplicate image pairs crossing the training/validation boundary of the original split despite having different lesion IDs. Zero shared image IDs or lesion IDs therefore does not establish independence of image content. These pairs provide a potential information-leakage route; the magnitude and direction of their effect on individual metrics have not been measured. Results on the original split are preliminary and potentially optimistic.
 
-**Midterm decision (2026-11-06):** retain the current split manifests, trained-model results, and feature tables for the midterm, disclose this limitation, and defer correction of the grouping rule and rerunning experiments until after the midterm submission. No corrected split or corrected performance is claimed.
+**Correction.** The team first decided (2026-11-06) to disclose this limitation and defer the correction. It was then carried out: the duplicate-aware split was added on 2026-11-11 and all three models were retrained on it on 2026-11-12. The grouping rule, seed, and allocation are those stated in the plan; the split was not chosen by model performance. The original manifests, feature tables, and results are preserved and identified as the original split. Hand-crafted features are computed per image and do not depend on the split, so the cached feature tables were reused by `image_id`.
 
-After submission, the team plans to verify the published duplicate relationships and group images using connected components of shared lesion IDs and confirmed near-duplicate links. It will retain seed 42 and start with approximately 85% of corrected groups for training, 7.5% for tuning/validation, and 7.5% for calibration, subject to class/group-count feasibility checks before freezing. It will audit and version the corrected manifests, regenerate development features, and retrain/re-evaluate all three models. The original manifests and results will be preserved and identified by version. The corrected split will not be chosen by model performance.
+**What the correction does not establish.** The 18 pairs are the published near-duplicates; other visual duplicates may exist. Patient-level independence still cannot be verified. The effect of the five crossing pairs on the original results has not been measured, and results on the two splits are computed on different evaluation images, so their difference is not an estimate of that effect.
 
-The held-out cohort remains reserved for final assessment. These five pairs concern train/validation and do not by themselves require changing the held-out cohort. Any newly discovered development/test overlap will be handled using a documented rule before prediction-based evaluation. Recalibration and final testing will follow the corrected development workflow.
+The held-out cohort remains reserved for final assessment. The 18 pairs are all HAM10000 development images and do not link development and test. Any newly discovered development/test overlap will be handled using a documented rule before prediction-based evaluation.
 
-See [experimental design](reports/experimental-design.md) for current methods and planned work. Audit code and generated tables have been merged into `main`; the pinned audit link above preserves the original evidence.
+See [experimental design](reports/experimental-design.md) for the protocol. Audit code and generated tables have been merged into `main`; the pinned audit link above preserves the original evidence.
 
 ## Setup
 
@@ -96,13 +103,29 @@ python -m src.data.validate_splits --hash-images   # audit -> reports/dataset/sp
 python -m src.data.describe_dataset              # counts and demographics -> reports/dataset/*.csv
 ```
 
-The audit reports the known five cross-split near-duplicate pairs as WARN. A successful exit means no FAIL checks were found; it does not mean the data are free of leakage. Raw-data checks are reported as SKIP when their inputs are unavailable. The grouping correction and rerunning all three models remain deferred until after midterm submission, as described above.
+This audit covers the original split (`data/splits/`). It reports the known five cross-split near-duplicate pairs as WARN. A successful exit means no FAIL checks were found; it does not mean the data are free of leakage. Raw-data checks are reported as SKIP when their inputs are unavailable. The duplicate-aware split has its own checks: `make_splits_v2` refuses to write manifests in which an image, lesion, or connected group appears in more than one subset, and `tests/test_splits_v2.py` verifies that no known pair crosses.
 
 The saved [split audit](reports/dataset/split_audit.md) and dataset tables were generated on the data contributor's environment. See [pre-merge review](reports/dataset/premerge-review.md) for independently rerun checks and their limits. The table generator excludes the documented withdrawn test image; demographics are counted per lesion, not per patient.
 
 ## Reproducing the results
 
-With the environment from [Setup](#setup) active and the data in `data/raw`:
+With the environment from [Setup](#setup) active and the data in `data/raw`.
+
+**Current results (duplicate-aware split, written to `reports/v2/`):**
+
+```bash
+python -m src.data.make_splits_v2 --from-splits data/splits --out data/splits_v2   # only to rebuild the committed manifests
+
+python -m src.models.metadata_baseline --splits-dir data/splits_v2 --eval-split tune --predict-splits tune calibration --reports-dir reports/v2/metadata_baseline
+python -m src.models.classical_ml      --splits-dir data/splits_v2 --eval-split tune --predict-splits tune calibration --reports-dir reports/v2/classical_ml
+python -m src.models.cnn               --splits-dir data/splits_v2 --eval-split tune --predict-splits tune calibration --reports-dir reports/v2/cnn
+
+python -m src.eval.fit_calibrators --reports-dir reports/v2 --models-dir models
+```
+
+Each model script trains on the train subset, selects (CNN checkpoint) and reports on the tune subset, and saves its predictions for the tune and calibration subsets with image, lesion, and group IDs. `fit_calibrators` fits one recalibration mapping per model on the calibration predictions only. The scripts refuse the held-out split. `reports/v2/cnn/metrics.json` records every setting of the CNN run (batch size 64, learning rate 1e-3, at most 20 epochs, patience 5, seed 42, device, library version, training time); the reported run stopped after 16 epochs with the checkpoint of epoch 11, in about 11 minutes on an Apple M4 GPU. The CNN uses a GPU when one is available; its results are close but not guaranteed identical across devices and library versions. On the machine used, a second run reproduced all three models exactly.
+
+**Preliminary results (original split, written to `reports/`):**
 
 ```bash
 # only needed if you don't already have data/features/{train,val}.csv committed:
@@ -111,13 +134,11 @@ python -m src.features.build_feature_table --splits train val
 python -m src.models.metadata_baseline   # model 1: metadata-only baseline
 python -m src.models.classical_ml        # model 2: hand-crafted image features
 python -m src.models.cnn                 # model 3: CNN trained from scratch (needs the images in data/raw)
-
-python -m pytest tests/ -q
 ```
 
-`reports/cnn/metrics.json` records the reported CNN run's image size (96 × 96) and its 15 epochs (early-stopped, about 95 s each). It does not record the other settings, so the command above assumes the script's defaults: batch size 64, learning rate 1e-3, at most 20 epochs, patience 5, seed 42. Model weights are not committed; each script saves its own under `models/`.
+With no options, each script trains on `data/splits/train.csv` and reports on `data/splits/val.csv`. `reports/cnn/metrics.json` records that run's image size (96 × 96) and its 15 epochs (early-stopped, about 95 s each) but not its other settings, which were the script's defaults.
 
-Each model script trains on `data/splits/train.csv`, reports on `data/splits/val.csv` only (the test set is touched once, at the end, across all models), and writes its metrics/reliability diagram to `reports/<model>/`.
+Model weights are not committed; each script saves its own under `models/`. Run the tests with `python -m pytest tests/ -q`.
 
 ## Scoring a single image
 
@@ -130,7 +151,29 @@ python -m src.predict --image-id ISIC_0029176   # a HAM10000 image: also prints 
 
 ## Results
 
-**Preliminary validation-set performance on the original split with the known cross-split near-duplicate limitation**, threshold 0.5. No performance correction or retraining has been carried out for this finding. The listed 95% percentile bootstrap CIs use 1,000 image-level resamples. They do not account for dependence between images of the same lesion, repeated training, or development-set model selection. ECE and calibration slope/intercept do not currently have CIs. AUPRC is implemented as average precision.
+No held-out test result exists yet. Everything below is development performance.
+
+### Duplicate-aware split, tuning subset
+
+**Development performance on the tuning subset (752 images of 560 lesions)**, before recalibration, threshold 0.5. The CNN checkpoint was selected on this subset, so its values are optimistic to an unmeasured degree. The listed 95% percentile bootstrap CIs use 1,000 image-level resamples. They do not account for dependence between images of the same lesion, repeated training, or development-set model selection. ECE and calibration slope/intercept do not currently have CIs. AUPRC is implemented as average precision.
+
+| Model | AUROC | AUPRC | Sensitivity | Specificity | Brier score | ECE |
+|---|---|---|---|---|---|---|
+| 1. Metadata baseline (age/sex/site, logistic regression) | 0.803 [0.765, 0.841] | 0.455 [0.377, 0.542] | 0.787 [0.716, 0.854] | 0.698 [0.664, 0.734] | 0.190 [0.176, 0.204] | 0.244 |
+| 2. Classical ML (hand-crafted features, gradient boosting) | 0.845 [0.814, 0.874] | 0.510 [0.428, 0.606] | 0.757 [0.683, 0.824] | 0.752 [0.716, 0.783] | 0.160 [0.146, 0.175] | 0.175 |
+| 3. CNN (trained from scratch, no pretrained backbone) | 0.872 [0.848, 0.897] | 0.537 [0.458, 0.628] | 0.926 [0.882, 0.969] | 0.680 [0.645, 0.718] | 0.172 [0.157, 0.186] | 0.216 |
+
+The CNN has the highest observed AUROC, AUPRC, and sensitivity; histogram gradient boosting has the highest specificity and the lowest Brier score and ECE. These are descriptive differences; separate confidence-interval overlap does not establish statistical superiority, equivalence, or absence of a difference. Paired lesion-group bootstrap comparisons are planned. Input information and model family change together, so the observed differences cannot be attributed to image information alone.
+
+The calibration intercepts are negative for all three models (−1.56, −1.34, −1.78 for models 1–3; slopes 1.02, 0.91, 1.19), and the reliability diagrams (`reports/v2/<model>/reliability_diagram.png`) show predicted probabilities above observed frequencies. This suggests systematic overestimation of positive-group probabilities. Class weighting is a plausible contributor, but its causal effect has not been isolated by an ablation.
+
+**Fitted recalibration mappings** (calibration subset, 744 images, 133 positive; intercept and slope on the logit scale): −1.458 and 0.694 for model 1, −1.290 and 0.865 for model 2, −1.408 and 0.976 for model 3. These coefficients describe the fitted correction. They are not evidence that recalibration improves calibration, which has not been evaluated.
+
+Full outputs are in `reports/v2/<model>/`: `metrics.json`, the tune and calibration predictions, `calibrator.json`, and the reliability diagram.
+
+### Original split, validation subset (preliminary)
+
+**Preliminary validation-set performance on the original split (1,527 images), which has the known cross-split near-duplicate limitation**, threshold 0.5, with the same kind of image-level bootstrap CIs. These results are kept for the record and are superseded by the table above. The two tables use different evaluation images and are not directly comparable.
 
 | Model | AUROC | AUPRC | Sensitivity | Specificity | Brier score | ECE |
 |---|---|---|---|---|---|---|
@@ -138,17 +181,16 @@ python -m src.predict --image-id ISIC_0029176   # a HAM10000 image: also prints 
 | 2. Classical ML (hand-crafted features, gradient boosting) | 0.840 [0.818, 0.862] | 0.555 [0.502, 0.616] | 0.747 [0.697, 0.799] | 0.730 [0.708, 0.756] | 0.160 | 0.163 |
 | 3. CNN (trained from scratch, no pretrained backbone) | 0.850 [0.830, 0.869] | 0.528 [0.472, 0.588] | 0.920 [0.889, 0.949] | 0.643 [0.617, 0.668] | 0.197 | 0.253 |
 
-The CNN has the highest observed validation AUROC, while histogram gradient boosting has higher observed AUPRC and lower Brier score and ECE. These are descriptive differences; separate confidence-interval overlap does not establish statistical superiority, equivalence, or absence of a difference. Paired lesion-level bootstrap comparisons are planned. Input information and model family change together, so the observed differences cannot be attributed to image information alone.
-
-The negative calibration intercepts (−1.47, −1.22, −1.82 for models 1–3), slopes near 1, and reliability diagrams suggest systematic overestimation of positive-group probabilities on validation. Class weighting is a plausible contributor, but its causal effect has not been isolated by an ablation. The CNN has the highest ECE, while the metadata baseline has a slightly higher Brier score than the CNN; calibration and overall probability error should therefore be interpreted using multiple measures.
+Calibration intercepts on this subset were −1.47, −1.22, and −1.82 for models 1–3, with slopes near 1.
 
 The CNN was trained from scratch because the original training environment could not download pretrained weights. Transfer learning is a possible future comparison; improved performance has not been demonstrated here.
 
 ## Planned evaluation work
 
-- After midterm submission, implement duplicate-aware grouping, version and freeze corrected development splits, regenerate features, and retrain/re-evaluate all three models; preserve original results as preliminary.
-- Preserve image and lesion IDs with predictions; implement lesion-level bootstrap CIs and paired model-difference estimates.
-- Implement the [agreed future recalibration protocol](reports/experimental-design.md#future-recalibration-protocol): disjoint training/tuning/calibration groups, logistic recalibration per frozen model without calibration class balancing, and original-versus-recalibrated held-out comparisons. Primary comparison: change in Brier score, supported by reliability diagrams, slope/intercept, ECE, discrimination metrics, and paired lesion-group bootstrap CIs. Do not claim improvement from fitting cases alone or revise methods based on test scores. Action owners remain for team discussion.
+Completed since the first version of this plan: duplicate-aware grouping, versioned development splits, retraining of all three models, predictions saved with image, lesion, and group IDs, and one fitted recalibration mapping per model. Still to do:
+
+- Implement lesion-group bootstrap CIs and paired model-difference estimates.
+- Complete the [agreed recalibration protocol](reports/experimental-design.md#future-recalibration-protocol): original-versus-recalibrated held-out comparisons. Primary comparison: change in Brier score, supported by reliability diagrams, slope/intercept, ECE, discrimination metrics, and paired lesion-group bootstrap CIs. Do not claim improvement from fitting cases alone or revise methods based on test scores.
 - Report diagnosis-specific sensitivity, particularly for melanoma.
 - Verify the held-out cohort and implement final evaluation for all models, including metadata compatibility and explicit missing-input/exclusion handling.
 - Prespecify any additional operating-point criterion using development data, and freeze thresholds before final testing.
