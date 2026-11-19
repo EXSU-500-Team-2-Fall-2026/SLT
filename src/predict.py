@@ -9,8 +9,11 @@ exact preprocessing of the training scripts:
 
 For each model it reports the raw probability of the malignant /
 pre-malignant group and, if models/<name>_calibrator.json exists
-(src/eval/recalibration.py), the recalibrated probability as well. Models
-whose files are missing are skipped with a note rather than an error.
+(src/eval/recalibration.py), the recalibrated probability as well. If
+models/<name>_threshold.json exists (src/eval/freeze_thresholds.py), it
+also says whether the image is flagged: its raw probability is at or
+above the model's frozen threshold. Models whose files are missing are
+skipped with a note rather than an error.
 
 Usage:
     # any image file
@@ -33,6 +36,7 @@ import joblib
 import pandas as pd
 from PIL import Image, UnidentifiedImageError
 
+from src.eval.freeze_thresholds import load_threshold
 from src.eval.recalibration import apply_recalibration, load_calibrator
 from src.features.handcrafted import FEATURE_NAMES, extract_features_from_path
 from src.models.metadata_baseline import FEATURE_COLUMNS
@@ -71,10 +75,12 @@ def _cnn_image_size(reports_dir: Path) -> int:
 
 
 def load_models(models_dir=Path("models"), reports_dir=Path("reports")) -> dict:
-    """Load every model whose file exists. Returns
-    {"models": {name: object}, "calibrators": {name: dict}, "skipped": {name: reason}, "cnn_image_size": int}."""
+    """Load every model whose file exists. Returns {"models": {name: object},
+    "calibrators": {name: dict}, "thresholds": {name: dict}, "skipped": {name: reason},
+    "cnn_image_size": int}."""
     models_dir = Path(models_dir)
-    loaded = {"models": {}, "calibrators": {}, "skipped": {}, "cnn_image_size": _cnn_image_size(reports_dir)}
+    loaded = {"models": {}, "calibrators": {}, "thresholds": {}, "skipped": {},
+              "cnn_image_size": _cnn_image_size(reports_dir)}
 
     for name in MODEL_NAMES:
         path = models_dir / MODEL_FILES[name]
@@ -99,6 +105,10 @@ def load_models(models_dir=Path("models"), reports_dir=Path("reports")) -> dict:
         calibrator_path = models_dir / f"{name}_calibrator.json"
         if calibrator_path.exists():
             loaded["calibrators"][name] = load_calibrator(calibrator_path)
+
+        threshold_path = models_dir / f"{name}_threshold.json"
+        if threshold_path.exists():
+            loaded["thresholds"][name] = load_threshold(threshold_path)
 
     return loaded
 
@@ -127,8 +137,11 @@ def _predict_cnn(model, image_path: Path, image_size: int) -> float:
 
 
 def predict_image(image_path, loaded: dict, age=None, sex=None, localization=None) -> dict:
-    """Return {model_name: {"raw": float, "recalibrated": float | None}} for
-    the loaded models. Raises InvalidImageError for unreadable input."""
+    """Return, for each loaded model, {"raw": float, "recalibrated": float |
+    None, "flagged": bool | None, "threshold_raw": float | None,
+    "threshold_recalibrated": float | None}. "flagged" compares the raw
+    probability with the frozen raw threshold and is None when no threshold
+    has been frozen. Raises InvalidImageError for unreadable input."""
     path = check_image(image_path)
     sex = sex.strip().lower() if isinstance(sex, str) and sex.strip() else None
     localization = localization.strip().lower() if isinstance(localization, str) and localization.strip() else None
@@ -144,7 +157,14 @@ def predict_image(image_path, loaded: dict, age=None, sex=None, localization=Non
 
         calibrator = loaded["calibrators"].get(name)
         recalibrated = float(apply_recalibration([raw], calibrator)[0]) if calibrator else None
-        results[name] = {"raw": raw, "recalibrated": recalibrated}
+        threshold = loaded.get("thresholds", {}).get(name)
+        results[name] = {
+            "raw": raw,
+            "recalibrated": recalibrated,
+            "flagged": None if threshold is None else bool(raw >= threshold["threshold_raw"]),
+            "threshold_raw": None if threshold is None else threshold["threshold_raw"],
+            "threshold_recalibrated": None if threshold is None else threshold["threshold_recalibrated"],
+        }
     return results
 
 
@@ -189,14 +209,22 @@ def lookup_image_id(image_id: str, raw_dir: Path, splits_dirs) -> dict:
 
 
 def format_results(results: dict, skipped: dict) -> str:
-    lines = [f"{'model':<20}{'raw':>8}{'recalibrated':>15}"]
+    lines = [f"{'model':<20}{'raw':>8}{'recalibrated':>15}{'threshold':>12}   flagged"]
     for name in MODEL_NAMES:
         if name in results:
             r = results[name]
             recal = "-" if r["recalibrated"] is None else f"{100 * r['recalibrated']:.1f}%"
-            lines.append(f"{name:<20}{100 * r['raw']:>7.1f}%{recal:>15}")
+            if r.get("flagged") is None:
+                threshold, flag = "-", "-"
+            else:
+                shown = r["threshold_raw"] if r["recalibrated"] is None else r["threshold_recalibrated"]
+                threshold, flag = f"{100 * shown:.1f}%", "YES" if r["flagged"] else "no"
+            lines.append(f"{name:<20}{100 * r['raw']:>7.1f}%{recal:>15}{threshold:>12}   {flag}")
         elif name in skipped:
             lines.append(f"{name:<20}skipped: {skipped[name]}")
+    if any(r.get("flagged") is not None for r in results.values()):
+        lines.append("flagged = raw probability at or above the model's frozen threshold; the threshold is shown "
+                     "on the scale of the recalibrated column when there is one")
     return "\n".join(lines)
 
 
