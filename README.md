@@ -214,11 +214,10 @@ See [`CONTRIBUTIONS.md`](CONTRIBUTIONS.md) for the CRediT contribution statement
 
 The team used the following generative AI tools:
 
-- **Claude** (Anthropic, claude.ai, [version]): comparing candidate datasets, drafting and revising this README, planning the evaluation protocol, drafting and editing the midterm report, identifying candidate references, and reviewing code and data checks.
-- **Claude Code** (Anthropic, [version]): writing and debugging the data download, split, feature, model, evaluation and test code, and drafting `MODEL_CARD.md` and `CONTRIBUTIONS.md`.
+- **Claude** (Anthropic, claude.ai, Opus5.5): comparing candidate datasets, drafting and revising this README, planning the evaluation protocol, drafting and editing the midterm report, identifying candidate references, and reviewing code and data checks.
+- **Claude Code** (Anthropic, Opus5.5): writing and debugging the data download, split, feature, model, evaluation and test code, and drafting `MODEL_CARD.md` and `CONTRIBUTIONS.md`.
 - **ChatGPT** (OpenAI, [version]): drafting an early project plan.
 - **OpenAI Codex** ([version]): finding candidate papers, building the literature evidence table in `reports/literature-review.md`, helping revise the experimental design, and aligning repository documentation with implemented and planned methods.
-- **Google Gemini** ([version]): explaining one candidate paper during the literature review.
 
 All AI-generated code was reviewed and tested by the authors, every reference was checked against the original publication by at least one author, and no data or results were generated or altered by an AI tool. The authors take full responsibility for this work.
 
