@@ -1,0 +1,18 @@
+{
+  "model": "cnn",
+  "rule": "highest threshold with sensitivity >= 0.90 on the tune subset; flag when score >= threshold",
+  "target_sensitivity": 0.9,
+  "threshold_raw": 0.5319053530693054,
+  "threshold_recalibrated": 0.21692294343206434,
+  "decision_scale": "raw probability (threshold_raw); threshold_recalibrated is the same point for display",
+  "selected_on": "tune",
+  "tune": {
+    "n": 752,
+    "n_positive": 136,
+    "sensitivity": 0.9044117647058824,
+    "specificity": 0.7061688311688312,
+    "flagged_fraction": 0.40425531914893614
+  },
+  "predictions_file": "reports/v2/cnn/predictions_tune.csv",
+  "calibrator_file": "reports/v2/cnn/calibrator.json"
+}

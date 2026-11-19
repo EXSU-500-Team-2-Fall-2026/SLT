@@ -1,0 +1,18 @@
+{
+  "model": "metadata_baseline",
+  "rule": "highest threshold with sensitivity >= 0.90 on the tune subset; flag when score >= threshold",
+  "target_sensitivity": 0.9,
+  "threshold_raw": 0.3905651498807,
+  "threshold_recalibrated": 0.1459500886918228,
+  "decision_scale": "raw probability (threshold_raw); threshold_recalibrated is the same point for display",
+  "selected_on": "tune",
+  "tune": {
+    "n": 752,
+    "n_positive": 136,
+    "sensitivity": 0.9191176470588235,
+    "specificity": 0.5503246753246753,
+    "flagged_fraction": 0.5345744680851063
+  },
+  "predictions_file": "reports/v2/metadata_baseline/predictions_tune.csv",
+  "calibrator_file": "reports/v2/metadata_baseline/calibrator.json"
+}
