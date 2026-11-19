@@ -151,15 +151,26 @@ def bootstrap_metrics_ci(
     return result
 
 
+def reliability_points(calibration: CalibrationMetrics) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(mean predicted probability, observed fraction, case count) for the
+    probability bins that contain at least one case. Empty bins are left
+    out: they have no observed fraction, and drawing them anywhere, for
+    example on the diagonal, would show agreement that was never observed."""
+    filled = np.asarray(calibration.bin_counts) > 0
+    return (
+        np.asarray(calibration.bin_confidence)[filled],
+        np.asarray(calibration.bin_accuracy)[filled],
+        np.asarray(calibration.bin_counts)[filled],
+    )
+
+
 def reliability_diagram(calibration: CalibrationMetrics, title: str, out_path) -> None:
     import matplotlib
 
     matplotlib.use("Agg")  # write the file without opening a window (needed on servers, tidier on macOS)
     import matplotlib.pyplot as plt
 
-    bin_centers = (calibration.bin_edges[:-1] + calibration.bin_edges[1:]) / 2
-    observed = np.where(np.isnan(calibration.bin_accuracy), bin_centers, calibration.bin_accuracy)
-    predicted = np.where(np.isnan(calibration.bin_confidence), bin_centers, calibration.bin_confidence)
+    predicted, observed, _ = reliability_points(calibration)
 
     fig, ax = plt.subplots(figsize=(5, 5))
     ax.plot([0, 1], [0, 1], linestyle="--", color="gray", label="Perfect calibration")

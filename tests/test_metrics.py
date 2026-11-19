@@ -1,6 +1,12 @@
 import numpy as np
 
-from src.eval.metrics import bootstrap_metrics_ci, calibration_metrics, discrimination_metrics
+from src.eval.metrics import (
+    bootstrap_metrics_ci,
+    calibration_metrics,
+    discrimination_metrics,
+    reliability_diagram,
+    reliability_points,
+)
 
 
 def test_perfect_separation_gives_auroc_and_auprc_of_one():
@@ -59,3 +65,33 @@ def test_bootstrap_ci_contains_point_estimate_and_widens_with_fewer_samples():
     width_large = ci_large["auroc_ci"][1] - ci_large["auroc_ci"][0]
     width_small = ci_small["auroc_ci"][1] - ci_small["auroc_ci"][0]
     assert width_small > width_large
+
+
+def test_reliability_points_leave_out_empty_bins():
+    # predictions only below 0.2 and above 0.8: the six middle bins are empty
+    y_true = np.array([0, 0, 1, 1, 0, 1, 0, 1])
+    y_prob = np.array([0.05, 0.08, 0.12, 0.15, 0.85, 0.90, 0.95, 0.92])
+    calib = calibration_metrics(y_true, y_prob)
+    assert calib.bin_counts.tolist() == [2, 2, 0, 0, 0, 0, 0, 0, 2, 2]
+
+    predicted, observed, counts = reliability_points(calib)
+    assert counts.tolist() == [2, 2, 2, 2]
+    assert np.allclose(predicted, [0.065, 0.135, 0.875, 0.935])
+    assert np.allclose(observed, [0.0, 1.0, 0.5, 0.5])
+    assert not np.isnan(predicted).any() and not np.isnan(observed).any()
+
+
+def test_reliability_points_keep_every_bin_when_all_are_filled():
+    rng = np.random.default_rng(0)
+    y_prob = rng.uniform(0, 1, 2000)
+    y_true = rng.binomial(1, y_prob)
+    calib = calibration_metrics(y_true, y_prob)
+    predicted, observed, counts = reliability_points(calib)
+    assert len(predicted) == 10 and counts.sum() == 2000
+    assert np.array_equal(predicted, calib.bin_confidence) and np.array_equal(observed, calib.bin_accuracy)
+
+
+def test_reliability_diagram_is_written_with_empty_bins(tmp_path):
+    calib = calibration_metrics(np.array([0, 1, 0, 1]), np.array([0.1, 0.15, 0.9, 0.95]))
+    reliability_diagram(calib, "empty bins", tmp_path / "diagram.png")
+    assert (tmp_path / "diagram.png").stat().st_size > 0
