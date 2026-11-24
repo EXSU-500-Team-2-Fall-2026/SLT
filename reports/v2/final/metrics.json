@@ -1,0 +1,420 @@
+{
+  "cohort": {
+    "split": "test",
+    "images": 1511,
+    "lesions": 1222,
+    "groups": 1222,
+    "positive_images": 307
+  },
+  "bootstrap": {
+    "method": "paired group bootstrap, percentile intervals",
+    "resampling_unit": "group_id",
+    "n_boot_requested": 2000,
+    "n_boot_used": 2000,
+    "seed": 42,
+    "ci_level": 0.95
+  },
+  "models": {
+    "metadata_baseline": {
+      "estimate": {
+        "auroc": 0.7255605635936672,
+        "auroc_recalibrated": 0.7255605635936672,
+        "auprc": 0.43510983070794285,
+        "auprc_recalibrated": 0.43510983070794285,
+        "sensitivity": 0.739413680781759,
+        "specificity": 0.6735880398671097,
+        "flagged_fraction": 0.41032428855062875,
+        "brier_original": 0.17581998066837662,
+        "brier_recalibrated": 0.1436888332078644,
+        "brier_difference": -0.03213114746051221,
+        "ece_original": 0.1860431588437728,
+        "ece_recalibrated": 0.055997009452159546,
+        "ece_difference": -0.13004614939161324,
+        "calibration_slope_original": 0.5615391738617687,
+        "calibration_slope_recalibrated": 0.8070171235706673,
+        "calibration_intercept_original": -1.0358831335229517,
+        "calibration_intercept_recalibrated": 0.1401999051595439,
+        "mean_predicted_original": 0.3446062258342544,
+        "mean_predicted_recalibrated": 0.1471796947172647
+      },
+      "ci95": {
+        "auroc": [
+          0.6827540222583489,
+          0.7628912940108262
+        ],
+        "auroc_recalibrated": [
+          0.6827540222583489,
+          0.7628912940108262
+        ],
+        "auprc": [
+          0.36786164579649205,
+          0.5135556871062118
+        ],
+        "auprc_recalibrated": [
+          0.36786164579649205,
+          0.5135556871062118
+        ],
+        "sensitivity": [
+          0.678082191780822,
+          0.7965517241379311
+        ],
+        "specificity": [
+          0.6411323896752706,
+          0.7056327548026984
+        ],
+        "flagged_fraction": [
+          0.3796739207422885,
+          0.4417633945288298
+        ],
+        "brier_original": [
+          0.16282958071171494,
+          0.189783932908154
+        ],
+        "brier_recalibrated": [
+          0.12837017828488306,
+          0.1595502671006466
+        ],
+        "brier_difference": [
+          -0.04747769584800909,
+          -0.0178408807648188
+        ],
+        "ece_original": [
+          0.16474302580032935,
+          0.21085233690028418
+        ],
+        "ece_recalibrated": [
+          0.04002335151206539,
+          0.08157924233227427
+        ],
+        "ece_difference": [
+          -0.16254625286928237,
+          -0.08807087073245272
+        ],
+        "calibration_slope_original": [
+          0.4360151486966442,
+          0.6898934139570756
+        ],
+        "calibration_slope_recalibrated": [
+          0.6267686087135221,
+          0.9915610708739468
+        ],
+        "calibration_intercept_original": [
+          -1.2265546479877656,
+          -0.8774324330172961
+        ],
+        "calibration_intercept_recalibrated": [
+          -0.229053031867156,
+          0.47623345028537056
+        ],
+        "mean_predicted_original": [
+          0.3284314324855751,
+          0.3620548863295513
+        ],
+        "mean_predicted_recalibrated": [
+          0.13949798212456607,
+          0.15525524659354403
+        ]
+      },
+      "recalibration_verdict": "improvement"
+    },
+    "classical_ml": {
+      "estimate": {
+        "auroc": 0.8194482019760408,
+        "auroc_recalibrated": 0.8194482019760408,
+        "auprc": 0.4879780945520586,
+        "auprc_recalibrated": 0.4879780945520586,
+        "sensitivity": 0.9218241042345277,
+        "specificity": 0.5357142857142857,
+        "flagged_fraction": 0.557246856386499,
+        "brier_original": 0.17773263130804848,
+        "brier_recalibrated": 0.12811922178207177,
+        "brier_difference": -0.049613409525976704,
+        "ece_original": 0.18658573835104816,
+        "ece_recalibrated": 0.014060966959236176,
+        "ece_difference": -0.172524771391812,
+        "calibration_slope_original": 0.8869316133432461,
+        "calibration_slope_recalibrated": 1.0234650233143547,
+        "calibration_intercept_original": -1.2874895741559873,
+        "calibration_intercept_recalibrated": 0.03359986957012634,
+        "mean_predicted_original": 0.3897624425204723,
+        "mean_predicted_recalibrated": 0.20159024039698772
+      },
+      "ci95": {
+        "auroc": [
+          0.7945586697644488,
+          0.8460201051641781
+        ],
+        "auroc_recalibrated": [
+          0.7945586697644488,
+          0.8460201051641781
+        ],
+        "auprc": [
+          0.42646185850824003,
+          0.5568735446203852
+        ],
+        "auprc_recalibrated": [
+          0.42646185850824003,
+          0.5568735446203852
+        ],
+        "sensitivity": [
+          0.8864762230585016,
+          0.9542557932263814
+        ],
+        "specificity": [
+          0.5063679160754831,
+          0.5656841457091003
+        ],
+        "flagged_fraction": [
+          0.5297964776848071,
+          0.5830119318033472
+        ],
+        "brier_original": [
+          0.16619778577717367,
+          0.1889627453669525
+        ],
+        "brier_recalibrated": [
+          0.11508916921962553,
+          0.14023238890040768
+        ],
+        "brier_difference": [
+          -0.06270253085475966,
+          -0.03606288998015978
+        ],
+        "ece_original": [
+          0.16272594366760776,
+          0.2098347751816284
+        ],
+        "ece_recalibrated": [
+          0.01362621038641792,
+          0.04002860321034841
+        ],
+        "ece_difference": [
+          -0.18497372574907384,
+          -0.1283704245285729
+        ],
+        "calibration_slope_original": [
+          0.7748024644234635,
+          1.0319559995773904
+        ],
+        "calibration_slope_recalibrated": [
+          0.8953495522673648,
+          1.1907621095985157
+        ],
+        "calibration_intercept_original": [
+          -1.5118134410118025,
+          -1.1065714419291641
+        ],
+        "calibration_intercept_recalibrated": [
+          -0.18285717407904048,
+          0.25808645990784046
+        ],
+        "mean_predicted_original": [
+          0.37327229142442625,
+          0.4060786198925386
+        ],
+        "mean_predicted_recalibrated": [
+          0.19162033990414123,
+          0.21209708470816968
+        ]
+      },
+      "recalibration_verdict": "improvement"
+    },
+    "cnn": {
+      "estimate": {
+        "auroc": 0.8603812481738398,
+        "auroc_recalibrated": 0.8603812481738398,
+        "auprc": 0.5666457993654423,
+        "auprc_recalibrated": 0.5666457993654423,
+        "sensitivity": 0.8599348534201955,
+        "specificity": 0.6960132890365448,
+        "flagged_fraction": 0.4169424222369292,
+        "brier_original": 0.17564608113862754,
+        "brier_recalibrated": 0.11678481646611422,
+        "brier_difference": -0.05886126467251332,
+        "ece_original": 0.20938870164917528,
+        "ece_recalibrated": 0.023497848304305027,
+        "ece_difference": -0.18589085334487027,
+        "calibration_slope_original": 1.1918866496320448,
+        "calibration_slope_recalibrated": 1.220197741859564,
+        "calibration_intercept_original": -1.6001330171484545,
+        "calibration_intercept_recalibrated": 0.11892913842212147,
+        "mean_predicted_original": 0.4125654058185995,
+        "mean_predicted_recalibrated": 0.20906661626858472
+      },
+      "ci95": {
+        "auroc": [
+          0.8347915288563829,
+          0.8838896983032071
+        ],
+        "auroc_recalibrated": [
+          0.8347915288563829,
+          0.8838896983032071
+        ],
+        "auprc": [
+          0.4966182361319757,
+          0.6377289625172033
+        ],
+        "auprc_recalibrated": [
+          0.4966182361319757,
+          0.6377289625172033
+        ],
+        "sensitivity": [
+          0.8136171904712513,
+          0.9039741721854304
+        ],
+        "specificity": [
+          0.6652853100396272,
+          0.7253817312600891
+        ],
+        "flagged_fraction": [
+          0.38698914694772424,
+          0.4464766341381697
+        ],
+        "brier_original": [
+          0.16407577965064007,
+          0.18775817114998888
+        ],
+        "brier_recalibrated": [
+          0.10489649234649762,
+          0.12829918869621665
+        ],
+        "brier_difference": [
+          -0.07223453836383008,
+          -0.045495771010649395
+        ],
+        "ece_original": [
+          0.18650356854082142,
+          0.23206494000373912
+        ],
+        "ece_recalibrated": [
+          0.019196408949380205,
+          0.047666500177396064
+        ],
+        "ece_difference": [
+          -0.2003924011380615,
+          -0.14773496129040334
+        ],
+        "calibration_slope_original": [
+          1.0156713154600616,
+          1.4016782860050496
+        ],
+        "calibration_slope_recalibrated": [
+          1.0399330810755454,
+          1.4347596273407874
+        ],
+        "calibration_intercept_original": [
+          -1.8577933948217293,
+          -1.3780864751637467
+        ],
+        "calibration_intercept_recalibrated": [
+          -0.11128340143968232,
+          0.3402757465202229
+        ],
+        "mean_predicted_original": [
+          0.3951512471032857,
+          0.43007596200722054
+        ],
+        "mean_predicted_recalibrated": [
+          0.19779375516848313,
+          0.22150299505382323
+        ]
+      },
+      "recalibration_verdict": "improvement"
+    }
+  },
+  "model_differences": {
+    "classical_ml_minus_metadata_baseline": {
+      "estimate": {
+        "auroc": 0.09388763838237368,
+        "auprc": 0.05286826384411575,
+        "sensitivity": 0.1824104234527687,
+        "specificity": -0.137873754152824,
+        "brier_recalibrated": -0.015569611425792634
+      },
+      "ci95": {
+        "auroc": [
+          0.05186970940040557,
+          0.14378673940502834
+        ],
+        "auprc": [
+          -0.022236076817854597,
+          0.12583682311121178
+        ],
+        "sensitivity": [
+          0.12210368638339854,
+          0.25165920243937306
+        ],
+        "specificity": [
+          -0.17968973520717985,
+          -0.09333139050791013
+        ],
+        "brier_recalibrated": [
+          -0.02516215370446822,
+          -0.0065778368569234195
+        ]
+      }
+    },
+    "cnn_minus_metadata_baseline": {
+      "estimate": {
+        "auroc": 0.1348206845801726,
+        "auprc": 0.1315359686574995,
+        "sensitivity": 0.12052117263843654,
+        "specificity": 0.022425249169435113,
+        "brier_recalibrated": -0.026904016741750192
+      },
+      "ci95": {
+        "auroc": [
+          0.09423117222682562,
+          0.17878903799299597
+        ],
+        "auprc": [
+          0.053327237320925855,
+          0.1967071447279825
+        ],
+        "sensitivity": [
+          0.055183811145626774,
+          0.18932280219780198
+        ],
+        "specificity": [
+          -0.017812320638949677,
+          0.06411740555232992
+        ],
+        "brier_recalibrated": [
+          -0.03693935111883058,
+          -0.017375970442577975
+        ]
+      }
+    },
+    "cnn_minus_classical_ml": {
+      "estimate": {
+        "auroc": 0.04093304619779892,
+        "auprc": 0.07866770481338375,
+        "sensitivity": -0.061889250814332164,
+        "specificity": 0.1602990033222591,
+        "brier_recalibrated": -0.011334405315957558
+      },
+      "ci95": {
+        "auroc": [
+          0.01771650412195185,
+          0.0625858945815731
+        ],
+        "auprc": [
+          0.015094912622716953,
+          0.13826374534691205
+        ],
+        "sensitivity": [
+          -0.10856608851674636,
+          -0.016442028366370525
+        ],
+        "specificity": [
+          0.12778278282216307,
+          0.18962769335201887
+        ],
+        "brier_recalibrated": [
+          -0.018289880375199196,
+          -0.004144558984613962
+        ]
+      }
+    }
+  }
+}
