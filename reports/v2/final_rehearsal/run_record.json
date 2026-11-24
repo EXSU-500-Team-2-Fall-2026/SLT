@@ -1,0 +1,142 @@
+{
+  "purpose": "rehearsal of the scoring path on the tuning subset",
+  "split": "tune",
+  "scored_at_utc": "2026-11-24T14:07:48+00:00",
+  "manifest_images": 752,
+  "scored_images": 752,
+  "scored_lesions": 560,
+  "excluded_images": [],
+  "missing_metadata": {
+    "age": 2,
+    "sex": 0,
+    "localization": 0
+  },
+  "missing_metadata_handling": "the metadata model's fitted imputation (training median age; 'unknown' category)",
+  "cnn_device": "mps",
+  "frozen": {
+    "metadata_baseline": {
+      "model_file": "models/metadata_baseline.joblib",
+      "model_sha256": "755b818977b7f07ab51a1887bef7b9b952561c91f02d9d4f1cebb176d57dddf9",
+      "calibrator": {
+        "method": "logistic recalibration: sigmoid(intercept + slope * logit(p))",
+        "intercept": -1.4579746244100331,
+        "slope": 0.6939187488936194,
+        "eps": 1e-06,
+        "solver": "lbfgs",
+        "regularization": "none (C=inf)",
+        "class_weight": "none",
+        "converged": true,
+        "n_calibration": 744,
+        "n_positive": 133,
+        "model": "metadata_baseline",
+        "fitted_on": "calibration",
+        "predictions_file": "reports/v2/metadata_baseline/predictions_calibration.csv"
+      },
+      "threshold": {
+        "model": "metadata_baseline",
+        "rule": "highest threshold with sensitivity >= 0.90 on the tune subset; flag when score >= threshold",
+        "target_sensitivity": 0.9,
+        "threshold_raw": 0.3905651498807,
+        "threshold_recalibrated": 0.1459500886918228,
+        "decision_scale": "raw probability (threshold_raw); threshold_recalibrated is the same point for display",
+        "selected_on": "tune",
+        "tune": {
+          "n": 752,
+          "n_positive": 136,
+          "sensitivity": 0.9191176470588235,
+          "specificity": 0.5503246753246753,
+          "flagged_fraction": 0.5345744680851063
+        },
+        "predictions_file": "reports/v2/metadata_baseline/predictions_tune.csv",
+        "calibrator_file": "reports/v2/metadata_baseline/calibrator.json"
+      }
+    },
+    "classical_ml": {
+      "model_file": "models/classical_ml.joblib",
+      "model_sha256": "48f2f93a5a42ad3a9206f8dbd75a0659c0d2195aa189a079308f4e8caa92ef1e",
+      "calibrator": {
+        "method": "logistic recalibration: sigmoid(intercept + slope * logit(p))",
+        "intercept": -1.2897369468715068,
+        "slope": 0.8648466737377238,
+        "eps": 1e-06,
+        "solver": "lbfgs",
+        "regularization": "none (C=inf)",
+        "class_weight": "none",
+        "converged": true,
+        "n_calibration": 744,
+        "n_positive": 133,
+        "model": "classical_ml",
+        "fitted_on": "calibration",
+        "predictions_file": "reports/v2/classical_ml/predictions_calibration.csv"
+      },
+      "threshold": {
+        "model": "classical_ml",
+        "rule": "highest threshold with sensitivity >= 0.90 on the tune subset; flag when score >= threshold",
+        "target_sensitivity": 0.9,
+        "threshold_raw": 0.3107099355859414,
+        "threshold_recalibrated": 0.12144160609978057,
+        "decision_scale": "raw probability (threshold_raw); threshold_recalibrated is the same point for display",
+        "selected_on": "tune",
+        "tune": {
+          "n": 752,
+          "n_positive": 136,
+          "sensitivity": 0.9044117647058824,
+          "specificity": 0.5941558441558441,
+          "flagged_fraction": 0.49601063829787234
+        },
+        "predictions_file": "reports/v2/classical_ml/predictions_tune.csv",
+        "calibrator_file": "reports/v2/classical_ml/calibrator.json"
+      }
+    },
+    "cnn": {
+      "model_file": "models/cnn.pt",
+      "model_sha256": "345206b4ca1a78301191a86a9411637900b2e1d2ce320cb6e0a3ed3c094e212a",
+      "calibrator": {
+        "method": "logistic recalibration: sigmoid(intercept + slope * logit(p))",
+        "intercept": -1.408462981703192,
+        "slope": 0.9763607158935798,
+        "eps": 1e-06,
+        "solver": "lbfgs",
+        "regularization": "none (C=inf)",
+        "class_weight": "none",
+        "converged": true,
+        "n_calibration": 744,
+        "n_positive": 133,
+        "model": "cnn",
+        "fitted_on": "calibration",
+        "predictions_file": "reports/v2/cnn/predictions_calibration.csv"
+      },
+      "threshold": {
+        "model": "cnn",
+        "rule": "highest threshold with sensitivity >= 0.90 on the tune subset; flag when score >= threshold",
+        "target_sensitivity": 0.9,
+        "threshold_raw": 0.5319053530693054,
+        "threshold_recalibrated": 0.21692294343206434,
+        "decision_scale": "raw probability (threshold_raw); threshold_recalibrated is the same point for display",
+        "selected_on": "tune",
+        "tune": {
+          "n": 752,
+          "n_positive": 136,
+          "sensitivity": 0.9044117647058824,
+          "specificity": 0.7061688311688312,
+          "flagged_fraction": 0.40425531914893614
+        },
+        "predictions_file": "reports/v2/cnn/predictions_tune.csv",
+        "calibrator_file": "reports/v2/cnn/calibrator.json"
+      }
+    }
+  },
+  "code": {
+    "commit": "fcd026c8659be7dbf7586ad13e19a53ad1476c21",
+    "uncommitted_changes_to_tracked_files": false
+  },
+  "environment": {
+    "python": "3.13.17",
+    "platform": "macOS-26.5-arm64-arm-64bit-Mach-O"
+  },
+  "largest_difference_from_saved_predictions": {
+    "metadata_baseline": 1.1102230246251565e-16,
+    "classical_ml": 1.1102230246251565e-16,
+    "cnn": 1.1102230246251565e-16
+  }
+}
