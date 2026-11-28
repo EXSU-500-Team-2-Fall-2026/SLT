@@ -226,3 +226,15 @@ All AI-generated code was reviewed and tested by the authors, every reference wa
 Code: MIT (see `LICENSE`). Data: CC BY-NC 4.0, owned by the dataset authors and not redistributed here.
 
 *Course prototype for research and educational purposes. Not a medical device and not for clinical use.*
+
+### Run the local dermoscopy upload interface
+
+Install the repository requirements and place the original evaluated checkpoint at
+`models/cnn.pt`. From the repository root run `python -m src.interface` and open
+http://127.0.0.1:8000. Choose a de-identified dermoscopic JPEG or PNG, preview it,
+and select **Analyze image**. The local Python service deletes its temporary copy
+after each request. It checks the checkpoint SHA-256 against the held-out run record
+and uses that run's calibration and threshold. Without the matching checkpoint,
+the page supports preview only. For a scoring check, upload an original image
+listed in `reports/v2/cnn/predictions_tune.csv` and compare the raw score in the
+/predict JSON response with its saved prediction, allowing for CPU rounding.

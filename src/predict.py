@@ -74,7 +74,7 @@ def _cnn_image_size(reports_dir: Path) -> int:
     return DEFAULT_CNN_IMAGE_SIZE
 
 
-def load_models(models_dir=Path("models"), reports_dir=Path("reports")) -> dict:
+def load_models(models_dir=Path("models"), reports_dir=Path("reports"), *, names=MODEL_NAMES) -> dict:
     """Load every model whose file exists. Returns {"models": {name: object},
     "calibrators": {name: dict}, "thresholds": {name: dict}, "skipped": {name: reason},
     "cnn_image_size": int}."""
@@ -82,7 +82,7 @@ def load_models(models_dir=Path("models"), reports_dir=Path("reports")) -> dict:
     loaded = {"models": {}, "calibrators": {}, "thresholds": {}, "skipped": {},
               "cnn_image_size": _cnn_image_size(reports_dir)}
 
-    for name in MODEL_NAMES:
+    for name in names:
         path = models_dir / MODEL_FILES[name]
         if not path.exists():
             loaded["skipped"][name] = f"{path} not found"
